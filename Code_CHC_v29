@@ -319,6 +319,13 @@ function handle(e){
     if(action==='list'&&type==='indisponibilidadesHistorico')return json(listIndisponibilidadesHistorico(params.tail||body.tail,params.dias||body.dias));
     if(action==='translate'&&type==='ptEn')return json({texto:translatePtToEn(body.texto||params.texto)});
 
+    /* Envio de e-mail de verdade (v30): usa o serviço MailApp, nativo do
+       Apps Script — sai da conta Google que publicou o Web App, sem precisar
+       de servidor SMTP nem chave externa. Antes disso o front-end só abria
+       o app de e-mail do coordenador (mailto:); agora o botão "Enviar
+       e-mail" da prévia chama esta ação e o Apps Script manda direto. */
+    if(action==='send'&&type==='email')return json(enviarEmailIndisponibilidade(body));
+
     /* Indicadores de tendência (Painel de Voos): histórico diário de
        disponibilidade da frota, usado para calcular "média 7 dias". */
     if(action==='snapshot'&&type==='disponibilidade')return json(registrarSnapshotDisponibilidade());
@@ -1432,6 +1439,24 @@ function translatePtToEn(texto){
   const t=String(texto||'').trim();
   if(!t)return '';
   return LanguageApp.translate(t,'pt','en');
+}
+
+/* ---------- Envio de e-mail (v30) ----------
+   Manda o e-mail de aviso de indisponibilidade/disponibilização de
+   verdade, pela conta Google que publicou este Web App — o coordenador
+   não precisa mais abrir o próprio app de e-mail e clicar em enviar.
+   'to' aceita vários endereços separados por vírgula/ponto e vírgula
+   (é o mesmo formato que já vem do campo "Enviar e-mail para" do front-end).
+   Chega normalmente em qualquer provedor do destinatário, Outlook incluído
+   — só muda quem manda (a conta Google do script), não quem recebe. */
+function enviarEmailIndisponibilidade(d){
+  const to=String(d.to||'').trim().replace(/;/g,',');
+  const subject=String(d.subject||'').trim();
+  const body=String(d.body||'');
+  if(!to)throw new Error('Informe ao menos um destinatário.');
+  if(!subject)throw new Error('Assunto do e-mail vazio.');
+  MailApp.sendEmail({to:to,subject:subject,body:body});
+  return {ok:true,enviadoPara:to};
 }
 
 /* ---------- Histórico de Disponibilidade da Frota (indicadores de tendência) ----------
