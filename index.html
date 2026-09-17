@@ -270,7 +270,7 @@
 .aircraft-card-clickable:hover{transform:translateY(-2px);border-color:#ffc0a0;box-shadow:0 8px 20px rgba(23,29,36,.10)}
 .aircraft-card-clickable:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 .aircraft-card-hint{margin-top:8px;padding-top:7px;border-top:1px dashed #edf0f2;font-size:8px;font-weight:950;color:var(--orange);letter-spacing:.25px}
-.indisp-info{margin-top:8px;padding:8px 9px;border-radius:8px;background:#fff6f6;border:1px solid #f5d3d3;color:#7a2a2a;font-size:14px;font-weight:700;line-height:1.55}.indisp-history-timeline{display:grid;gap:10px;margin-top:12px}.indisp-history-event{background:#fff;border:1px solid #ead6d2;border-left:4px solid #e53935;border-radius:10px;padding:11px 12px;font-size:14px;line-height:1.55}.indisp-history-event-title{font-size:14px;font-weight:950;color:#a52c25;margin-bottom:5px}.indisp-history-event small{font-size:13px;color:#7a2a2a;font-weight:700}
+.indisp-info{margin-top:8px;padding:8px 9px;border-radius:8px;background:#fff6f6;border:1px solid #f5d3d3;color:#7a2a2a;font-size:14px;font-weight:700;line-height:1.55}.indisp-history-timeline{display:grid;gap:10px;margin-top:12px}.indisp-history-event{background:#fff;border:1px solid #ead6d2;border-left:4px solid #e53935;border-radius:10px;padding:11px 12px;font-size:14px;line-height:1.55}.indisp-history-event-title{font-size:14px;font-weight:950;color:#a52c25;margin-bottom:5px}.indisp-history-event small{font-size:13px;color:#7a2a2a;font-weight:700}.indisp-history-event.update{border-left-color:#f2a900;background:#fffdf6}.indisp-history-event.update .indisp-history-event-title{color:#a56c00}.indisp-history-event.availability{border-left-color:#1eb36b;background:#f8fffb}.indisp-history-event.availability .indisp-history-event-title{color:#168354}.indisp-history-event .indisp-history-stage-badge{display:inline-flex;align-items:center;margin-bottom:7px;padding:4px 9px;border-radius:999px;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.3px}.indisp-history-event.start .indisp-history-stage-badge{background:#ffe9df;color:#b33d1d}.indisp-history-event.update .indisp-history-stage-badge{background:#fff1c9;color:#956d00}.indisp-history-event.availability .indisp-history-stage-badge{background:#e4f7ed;color:#168354}
 .fleet-health-aircraft-clickable{cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
 .fleet-health-aircraft-clickable:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(23,29,36,.09);border-color:#ffc0a0}
 .fleet-health-aircraft-clickable:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
@@ -4145,15 +4145,33 @@ function indispHistDate(value){
   const d=new Date(value);
   return isNaN(d.getTime())?'—':d.toLocaleString('pt-BR');
 }
-function indispHistEventHtml(ev,index){
+function indispHistStage(ev, index, total){
+  const hasFim=!!(ev && (ev.disponibilizadoEm||ev.dataFim||ev.fim));
+  if(index===0)return 'start';
+  if(hasFim)return 'availability';
+  return 'update';
+}
+function indispHistEventHtml(ev,index,total){
+  const stage=indispHistStage(ev,index,total);
   const inicio=indispHistDate(ev.dataInicio||ev.indisponibilizadoEm||ev.inicio);
   const fim=indispHistDate(ev.disponibilizadoEm||ev.dataFim||ev.fim);
-  return `<div class="indisp-history-event">
-    <div class="indisp-history-event-title">${index===0?'INÍCIO DA INDISPONIBILIDADE':'REGISTRO / ATUALIZAÇÃO '+(index+1)}</div>
-    <b>Tipo:</b> ${esc(ev.tipoIndisponibilidade||ev.tipo||'Não registrado')}<br>
-    <b>Início:</b> ${esc(inicio)}<br>
-    ${fim!=='—'?`<b>Fim:</b> ${esc(fim)}<br>`:''}
-    ${ev.descricaoBR?`<b>Pane Reportada:</b> ${esc(ev.descricaoBR)}<br>`:''}
+  const title=stage==='start'
+    ? 'INÍCIO DA INDISPONIBILIDADE'
+    : stage==='update'
+      ? 'REGISTRO / ATUALIZAÇÃO '+index
+      : 'DISPONIBILIDADE / ENCERRAMENTO';
+  const badge=stage==='start'
+    ? '● Indisponibilidade iniciada'
+    : stage==='update'
+      ? '↻ Atualização registrada'
+      : '✓ Aeronave disponibilizada';
+  return `<div class="indisp-history-event ${stage}">
+    <div class="indisp-history-event-title">${title}</div>
+    <div class="indisp-history-stage-badge">${badge}</div>
+    ${stage!=='availability'?`<b>Tipo:</b> ${esc(ev.tipoIndisponibilidade||ev.tipo||'Não registrado')}<br>`:''}
+    ${inicio!=='—'?`<b>Início:</b> ${esc(inicio)}<br>`:''}
+    ${stage==='availability'&&fim!=='—'?`<b>Disponibilidade:</b> ${esc(fim)}<br>`:''}
+    ${stage!=='availability'&&ev.descricaoBR?`<b>Pane Reportada:</b> ${esc(ev.descricaoBR)}<br>`:''}
     ${ev.acaoCorretiva?`<b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}<br>`:''}
     ${ev.ata?`<b>ATA:</b> ${esc(ev.ata)}<br>`:''}
     ${ev.mecanico?`<b>Mecânico:</b> ${esc(ev.mecanico)}<br>`:''}
@@ -4165,8 +4183,10 @@ function indispHistEventHtml(ev,index){
     ${ev.responsavelInformacao?`<b>Responsável pela informação:</b> ${esc(ev.responsavelInformacao)}<br>`:''}
   </div>`;
 }
-/* Ao clicar em um card concluído, consulta novamente o histórico da matrícula
-   para apresentar a rastreabilidade completa, do início ao fechamento. */
+/* Ao clicar em um card concluído, usa primeiro o histórico que já foi carregado
+   na abertura da aba. Assim o modal abre imediatamente, sem uma nova espera
+   pelo Google Sheets. Só faz uma consulta de segurança se o cache ainda não
+   estiver disponível. */
 async function openIndispHistDetalhesModal(tail,ev){
   const byTail=window._indispAllAircraftByTail||{};
   const a=byTail[tail]||{model:'Aeronave CHC',base:'Sem base'};
@@ -4174,21 +4194,47 @@ async function openIndispHistDetalhesModal(tail,ev){
   document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal indisp-modal">
     <h3>INDISPONIBILIDADE — ${esc(tail)}${ev.numeroRef?`<span class="indisp-ref-badge">#${esc(ev.numeroRef)}</span>`:''}</h3>
     <p>${esc(a.model)}${a.base?' · Base '+esc(a.base):''}</p>
-    <div class="indisp-info" id="indispHistDetalhesConteudo">Carregando histórico completo da indisponibilidade…</div>
+    <div class="indisp-info" id="indispHistDetalhesConteudo">Rastreabilidade completa</div>
     <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">FECHAR</button></div>
   </div></div>`);
   const host=document.getElementById('indispHistDetalhesConteudo');
   if(!host)return;
+
   try{
-    const remoto=await chcData.listIndisponibilidadesHistorico(tail);
-    const lista=Array.isArray(remoto)?remoto.slice():[];
-    const chave=x=>String(x?.numeroRef||'')+'|'+String(x?.dataInicio||'')+'|'+String(x?.disponibilizadoEm||'');
+    let lista=Array.isArray(window._indispHistoricoList)?window._indispHistoricoList.slice():[];
+
+    // O histórico global já veio junto com a tela. Filtra apenas a aeronave
+    // clicada e, quando existir, a referência da mesma indisponibilidade.
+    let relacionados=lista.filter(x=>String(x?.matricula||'').trim().toUpperCase()===String(tail||'').trim().toUpperCase());
+    if(ev?.numeroRef){
+      const porRef=relacionados.filter(x=>String(x?.numeroRef||'')===String(ev.numeroRef||''));
+      if(porRef.length)relacionados=porRef;
+    }
+
+    // Mantém o evento clicado mesmo se ele não estiver no cache por alguma
+    // diferença de carga/filtragem.
+    const chave=x=>String(x?.numeroRef||'')+'|'+String(x?.dataInicio||x?.indisponibilizadoEm||x?.inicio||'')+'|'+String(x?.disponibilizadoEm||x?.dataFim||x?.fim||'')+'|'+String(x?.dataAtualizacao||x?.atualizadoEm||'');
     const seen=new Set();
-    const todos=[...lista,ev].filter(x=>{const k=chave(x);if(seen.has(k))return false;seen.add(k);return true;});
-    todos.sort((x,y)=>new Date(x.dataInicio||x.indisponibilizadoEm||0)-new Date(y.dataInicio||y.indisponibilizadoEm||0));
-    host.innerHTML=`<div><b>Rastreabilidade completa:</b> início, registros e encerramento da indisponibilidade.</div><div class="indisp-history-timeline">${todos.map((x,i)=>indispHistEventHtml(x,i)).join('')}</div>`;
+    const todos=[...relacionados,ev].filter(x=>{
+      const k=chave(x);
+      if(seen.has(k))return false;
+      seen.add(k);
+      return true;
+    });
+
+    todos.sort((x,y)=>{
+      const dx=new Date(x.dataAtualizacao||x.atualizadoEm||x.dataInicio||x.indisponibilizadoEm||0).getTime();
+      const dy=new Date(y.dataAtualizacao||y.atualizadoEm||y.dataInicio||y.indisponibilizadoEm||0).getTime();
+      return dx-dy;
+    });
+
+    if(!todos.length)throw new Error('Nenhum registro encontrado no histórico.');
+
+    host.innerHTML=`<div><b>Rastreabilidade completa:</b> etapas da indisponibilidade, atualizações e disponibilidade.</div><div class="indisp-history-timeline">${todos.map((x,i)=>indispHistEventHtml(x,i,todos.length)).join('')}</div>`;
   }catch(e){
-    host.innerHTML=indispHistEventHtml(ev,0)+`<small>Não foi possível consultar outros registros: ${esc(e?.message||'erro desconhecido')}</small>`;
+    // Fallback: ainda abre o registro clicado sem deixar o modal preso em
+    // "Carregando" caso o cache esteja vazio.
+    host.innerHTML=`<div><b>Rastreabilidade completa:</b></div><div class="indisp-history-timeline">${indispHistEventHtml(ev,0,1)}</div>`;
   }
 }
 /* Edita os dados da indisponibilidade em aberto (tipo, descrição, ATA,
