@@ -219,7 +219,12 @@
 .indisp-card{position:relative;background:#fff;border:1.5px solid #e53935;border-radius:12px;padding:14px 16px;box-sizing:border-box}
 .indisp-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .indisp-card-top b{font-size:15px;font-weight:900}
+.indisp-card-top-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
 .indisp-card-base{font-size:13px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.indisp-card-previsao-pill{display:inline-block;padding:3px 10px;border-radius:999px;background:#fff3ec;border:1px solid #ffd0ae;color:var(--orange);font-size:10.5px;font-weight:900;white-space:nowrap}
+@keyframes indispPulseRing{0%{box-shadow:0 0 0 0 rgba(229,57,53,.5)}70%{box-shadow:0 0 0 9px rgba(229,57,53,0)}100%{box-shadow:0 0 0 0 rgba(229,57,53,0)}}
+.indisp-card-overdue{animation:indispPulseRing 1.8s ease-in-out infinite}
+.indisp-card-overdue .indisp-card-previsao-pill{background:#ffe0d0;border-color:#ff8a50;color:#c2410c}
 .indisp-card-model{font-size:13px;color:var(--muted);margin-top:2px;font-weight:700}
 .indisp-card-lines{margin-top:9px;font-size:14px;line-height:1.55;color:var(--text)}
 .indisp-card-lines b{font-weight:900}
@@ -1433,6 +1438,14 @@ input::placeholder{color:#9AA0A6}
 .indisp-grid label .indisp-lbl{display:flex;align-items:flex-end;line-height:1.25;min-height:2.5em;font-size:12px;font-weight:900;color:var(--ink)}
 .indisp-grid label input,.indisp-grid label select{height:38px;box-sizing:border-box}
 .indisp-fieldset{margin-top:2px}
+.indisp-modal h3{display:flex;align-items:center;gap:8px}
+.indisp-modal>p{padding-bottom:12px;margin-bottom:18px!important;border-bottom:1px solid #eef0f2}
+.indisp-fieldset{background:#fbfbfc}
+.indisp-fieldset .indisp-fieldset{background:#fff}
+.indisp-radio-row{gap:10px!important}
+.indisp-radio-row label{padding:9px 20px;border:1.5px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+.indisp-radio-row label.indisp-pill-checked{border-color:var(--orange);background:#fff3ec;color:var(--orange)}
+.indisp-radio-row input{margin:0}
 .indisp-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:14px}
 @media(max-width:480px){.indisp-row-2{grid-template-columns:1fr}}
 .indisp-row-2 label{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;font-size:12px;font-weight:900;color:var(--ink)}
@@ -3614,6 +3627,18 @@ if(!window._aircraftAutoRefreshTimer){
     if(aircraftVisible&&!opened)refreshAeronavesFromSheets(true);
   },30000);
 }
+/* Reavalia a cada minuto se algum card de indisponibilidade passou da
+   previsão de disponibilidade, para acender o pulso sem precisar recarregar
+   os dados do Google Sheets. */
+if(!window._indispOverdueTimer){
+  window._indispOverdueTimer=setInterval(()=>{
+    if(currentSection!=='indisponibilidade')return;
+    const now=Date.now();
+    document.querySelectorAll('.indisp-card[data-previsao]').forEach(card=>{
+      card.classList.toggle('indisp-card-overdue',Number(card.dataset.previsao)<now);
+    });
+  },60000);
+}
 
 function getAircraftPanelSelectedIds(){return []}
 function toggleAllAircraft(checked){document.querySelectorAll('#aircraftBaseOptions input[type="checkbox"]').forEach(x=>x.checked=!!checked)}
@@ -4019,8 +4044,12 @@ function renderIndispCardsHtml(list){
       const dias=indispDiasCount(info.desde);
       const diasLabel=dias===null?'Indisponível':(dias===0?'Indisponível há menos de 1 dia':dias===1?'Indisponível há 1 dia':`Indisponível há ${dias} dias`);
       const refBadge=info.numeroRef?`<span class="indisp-ref-badge">#${esc(info.numeroRef)}</span>`:'';
-      return `<div class="indisp-card" style="cursor:pointer" onclick='openIndispDetalhesModal(${tailArg})'>
-        <div class="indisp-card-top"><div><b>${esc(a.tail)}</b>${refBadge}</div><span class="indisp-card-base">${esc(a.base)}</span></div>
+      const previsaoDate=info.previsao?new Date(info.previsao):null;
+      const previsaoValida=previsaoDate&&!isNaN(previsaoDate.getTime());
+      const isOverdue=previsaoValida&&previsaoDate.getTime()<Date.now();
+      const previsaoPill=previsaoValida?`<span class="indisp-card-previsao-pill">⏱ Previsão: ${esc(previsaoDate.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))}</span>`:'';
+      return `<div class="indisp-card${isOverdue?' indisp-card-overdue':''}"${previsaoValida?` data-previsao="${previsaoDate.getTime()}"`:''} style="cursor:pointer" onclick='openIndispDetalhesModal(${tailArg})'>
+        <div class="indisp-card-top"><div><b>${esc(a.tail)}</b>${refBadge}</div><div class="indisp-card-top-right"><span class="indisp-card-base">${esc(a.base)}</span>${previsaoPill}</div></div>
         <div class="indisp-card-model">${esc(a.model)}</div>
         <div class="indisp-card-lines">
           ${info.desde?`<b>Início:</b> ${esc(new Date(info.desde).toLocaleString('pt-BR'))}`:''}
@@ -4277,30 +4306,33 @@ function openIndisponibilizarModal(tail){
   const agoraData=splitDateTime(agora).date;
   const agoraHora=splitDateTime(agora).time;
   document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal indisp-modal">
-    <h3>INDISPONIBILIZAR ${esc(tail)}</h3>
+    <h3>🛠 INDISPONIBILIZAR ${esc(tail)}</h3>
     <p>${esc(target.model)}${target.base?' · Base '+esc(target.base):''}</p>
 
-    <div class="indisp-grid">
-      <label><span class="indisp-lbl">Tipo de Indisponibilidade</span>
-        <select id="indispTipo">
-          <option>Manutenção programada</option>
-          <option>Manutenção não programada / AOG</option>
-          <option>Falha técnica</option>
-          <option>Aguardando peça</option>
-          <option>Inspeção</option>
-          <option>Outro</option>
-        </select>
-      </label>
-      <label><span class="indisp-lbl">Início da Indisponibilidade — Data</span>
-        <input id="indispDataInicioData" type="date" value="${agoraData}">
-      </label>
-      <label><span class="indisp-lbl">Início da Indisponibilidade — Hora</span>
-        <input id="indispDataInicioHora" type="time" value="${agoraHora}">
-      </label>
-      <label><span class="indisp-lbl">Aeronave</span>
-        <input type="text" value="${esc(tail)} — ${esc(target.model)}" disabled>
-      </label>
-    </div>
+    <fieldset class="indisp-fieldset">
+      <legend>Dados da Indisponibilidade</legend>
+      <div class="indisp-grid">
+        <label><span class="indisp-lbl">Tipo de Indisponibilidade</span>
+          <select id="indispTipo">
+            <option>Manutenção programada</option>
+            <option>Manutenção não programada / AOG</option>
+            <option>Falha técnica</option>
+            <option>Aguardando peça</option>
+            <option>Inspeção</option>
+            <option>Outro</option>
+          </select>
+        </label>
+        <label><span class="indisp-lbl">Início da Indisponibilidade — Data</span>
+          <input id="indispDataInicioData" type="date" value="${agoraData}">
+        </label>
+        <label><span class="indisp-lbl">Início da Indisponibilidade — Hora</span>
+          <input id="indispDataInicioHora" type="time" value="${agoraHora}">
+        </label>
+        <label><span class="indisp-lbl">Aeronave</span>
+          <input type="text" value="${esc(tail)} — ${esc(target.model)}" disabled>
+        </label>
+      </div>
+    </fieldset>
 
     <fieldset class="indisp-fieldset">
       <legend>Descrição Reportada</legend>
@@ -4310,46 +4342,63 @@ function openIndisponibilizarModal(tail){
       </div>
     </fieldset>
 
-    <div class="indisp-grid">
-      <label><span class="indisp-lbl">Inspetor</span><input id="indispInspetor" type="text" placeholder="Nome do inspetor"></label>
-      <label><span class="indisp-lbl">Mecânico Responsável</span><input id="indispMecanico" type="text" placeholder="Nome do mecânico"></label>
-      <label><span class="indisp-lbl">ATA</span><input id="indispAta" type="text" placeholder="Ex.: 32-00"></label>
-      <label><span class="indisp-lbl">Previsão de Disponibilidade — Data</span><input id="indispRTSData" type="date"></label>
-      <label><span class="indisp-lbl">Previsão de Disponibilidade — Hora</span><input id="indispRTSHora" type="time"></label>
-      <label><span class="indisp-lbl">Piloto</span><input id="indispPiloto" type="text" placeholder="Nome do piloto"></label>
-      <label><span class="indisp-lbl">Copiloto</span><input id="indispCopiloto" type="text" placeholder="Nome do copiloto"></label>
-    </div>
-
     <fieldset class="indisp-fieldset">
-      <legend>Programação prevista foi cumprida?</legend>
-      <div class="indisp-radio-row">
-        <label><input type="radio" name="indispProgCumprida" value="Sim" onchange="toggleIndispProgramacao()"> Sim</label>
-        <label><input type="radio" name="indispProgCumprida" value="Não" onchange="toggleIndispProgramacao()"> Não</label>
+      <legend>Responsáveis e Previsão de Retorno</legend>
+      <div class="indisp-grid">
+        <label><span class="indisp-lbl">Inspetor</span><input id="indispInspetor" type="text" placeholder="Nome do inspetor"></label>
+        <label><span class="indisp-lbl">Mecânico Responsável</span><input id="indispMecanico" type="text" placeholder="Nome do mecânico"></label>
+        <label><span class="indisp-lbl">ATA</span><input id="indispAta" type="text" placeholder="Ex.: 32-00"></label>
+        <label><span class="indisp-lbl">Previsão de Disponibilidade — Data</span><input id="indispRTSData" type="date"></label>
+        <label><span class="indisp-lbl">Previsão de Disponibilidade — Hora</span><input id="indispRTSHora" type="time"></label>
       </div>
-
-      <div id="indispEmailBlock" class="hidden" style="margin-top:12px">
-        <label>Enviar e-mail para
-          <textarea id="indispEmails" style="min-height:40px" placeholder="email1@empresa.com, email2@empresa.com">${esc(indispDefaultEmails())}</textarea>
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-weight:800"><input type="checkbox" id="indispSendEmail" style="width:auto" checked> Abrir e-mail de aviso ao confirmar</label>
-      </div>
-
-      <fieldset id="indispOcorrenciaBlock" class="indisp-fieldset hidden" style="margin-top:12px;margin-bottom:0">
-        <legend>Ocorrência</legend>
-        <div class="indisp-grid">
-          <label>O voo foi transferido?
-            <select id="ocorVooTransferido"><option>Não</option><option>Sim</option></select>
-          </label>
-          <label>Número do Voo<input id="ocorNumeroVoo" type="text"></label>
-          <label>Número de PAX<input id="ocorNumeroPax" type="number" min="0"></label>
-          <label>Destino<input id="ocorDestino" type="text"></label>
-          <label>Acionamento<input id="ocorAcionamento" type="time"></label>
-          <label>Corte<input id="ocorCorte" type="time"></label>
-        </div>
-      </fieldset>
     </fieldset>
 
-    <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">CANCELAR</button><button class="tool-btn primary" id="indispConfirmBtn" onclick='reviewIndisponibilizar(${tailArg})'>CONFIRMAR</button></div>
+    <fieldset class="indisp-fieldset">
+      <legend>Impacto na Programação de Voo</legend>
+      <div class="indisp-radio-row">
+        <label><input type="radio" name="indispInterrompeu" value="Sim" onchange="toggleIndispInterrompeu()"> Sim</label>
+        <label><input type="radio" name="indispInterrompeu" value="Não" onchange="toggleIndispInterrompeu()"> Não</label>
+      </div>
+      <small class="indisp-hint" style="margin-top:8px">Essa indisponibilidade interrompeu uma programação de voo (aeronave escalada/em operação)?</small>
+
+      <div id="indispVooBlock" class="hidden" style="margin-top:4px">
+        <div class="indisp-grid">
+          <label><span class="indisp-lbl">Piloto</span><input id="indispPiloto" type="text" placeholder="Nome do piloto"></label>
+          <label><span class="indisp-lbl">Copiloto</span><input id="indispCopiloto" type="text" placeholder="Nome do copiloto"></label>
+        </div>
+
+        <div style="margin-top:6px">
+          <span class="indisp-lbl" style="display:block;margin-bottom:6px">Programação prevista foi cumprida?</span>
+          <div class="indisp-radio-row">
+            <label><input type="radio" name="indispProgCumprida" value="Sim" onchange="toggleIndispProgramacao()"> Sim</label>
+            <label><input type="radio" name="indispProgCumprida" value="Não" onchange="toggleIndispProgramacao()"> Não</label>
+          </div>
+        </div>
+
+        <div id="indispEmailBlock" class="hidden" style="margin-top:12px">
+          <label>Enviar e-mail para
+            <textarea id="indispEmails" style="min-height:40px" placeholder="email1@empresa.com, email2@empresa.com">${esc(indispDefaultEmails())}</textarea>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-weight:800"><input type="checkbox" id="indispSendEmail" style="width:auto" checked> Abrir e-mail de aviso ao confirmar</label>
+        </div>
+
+        <fieldset id="indispOcorrenciaBlock" class="indisp-fieldset hidden" style="margin-top:12px;margin-bottom:0">
+          <legend>Ocorrência</legend>
+          <div class="indisp-grid">
+            <label>O voo foi transferido?
+              <select id="ocorVooTransferido"><option>Não</option><option>Sim</option></select>
+            </label>
+            <label>Número do Voo<input id="ocorNumeroVoo" type="text"></label>
+            <label>Número de PAX<input id="ocorNumeroPax" type="number" min="0"></label>
+            <label>Destino<input id="ocorDestino" type="text"></label>
+            <label>Acionamento<input id="ocorAcionamento" type="time"></label>
+            <label>Corte<input id="ocorCorte" type="time"></label>
+          </div>
+      </fieldset>
+      </div>
+    </fieldset>
+
+    <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">CANCELAR</button><button class="tool-btn primary" id="indispConfirmBtn" onclick='reviewIndisponibilizar(${tailArg})'>✉ ENVIAR</button></div>
   </div></div>`);
 }
 /* v195: a etapa "Confirmar" agora valida e monta uma prévia de e-mail (tela
@@ -4357,6 +4406,8 @@ function openIndisponibilizarModal(tail){
    prévia é que a indisponibilidade é de fato criada no backend + e-mail
    disparado, seguido de um popup de sucesso e fechamento do modal. */
 function indispCollectFormData(){
+  const interrompeu=(document.querySelector('input[name="indispInterrompeu"]:checked')||{}).value||'';
+  const vooOk=interrompeu==='Sim';
   return {
     tipoIndisponibilidade:document.getElementById('indispTipo').value,
     dataInicio:combineDateTime(document.getElementById('indispDataInicioData').value,document.getElementById('indispDataInicioHora').value),
@@ -4366,9 +4417,10 @@ function indispCollectFormData(){
     mecanico:document.getElementById('indispMecanico').value.trim(),
     ata:document.getElementById('indispAta').value.trim(),
     previsaoRTS:combineDateTime(document.getElementById('indispRTSData').value,document.getElementById('indispRTSHora').value),
-    tripulacao:buildTripulacaoStr(document.getElementById('indispPiloto').value.trim(),document.getElementById('indispCopiloto').value.trim()),
-    programacaoCumprida:(document.querySelector('input[name="indispProgCumprida"]:checked')||{}).value||'',
-    ocorrencia:!document.getElementById('indispOcorrenciaBlock').classList.contains('hidden')?{
+    interrompeuProgramacao:interrompeu,
+    tripulacao:vooOk?buildTripulacaoStr(document.getElementById('indispPiloto').value.trim(),document.getElementById('indispCopiloto').value.trim()):'',
+    programacaoCumprida:vooOk?((document.querySelector('input[name="indispProgCumprida"]:checked')||{}).value||''):'',
+    ocorrencia:(vooOk&&!document.getElementById('indispOcorrenciaBlock').classList.contains('hidden'))?{
       vooTransferido:document.getElementById('ocorVooTransferido').value,
       numeroVoo:document.getElementById('ocorNumeroVoo').value.trim(),
       numeroPax:document.getElementById('ocorNumeroPax').value.trim(),
@@ -4388,15 +4440,17 @@ function indispBuildEmailBody(tail,d){
     d.mecanico?`Mecânico Responsável: ${d.mecanico}`:'',
     d.ata?`ATA: ${d.ata}`:'',
     d.previsaoRTS?`Previsão de Disponibilidade (RTS): ${new Date(d.previsaoRTS).toLocaleString('pt-BR')}`:'',
-    d.tripulacao?`Tripulação do Reporte: ${d.tripulacao}`:'',
-    `Programação prevista cumprida: ${d.programacaoCumprida||'—'}`,
+    `Interrompeu programação de voo: ${d.interrompeuProgramacao||'—'}`,
+    d.interrompeuProgramacao==='Sim'&&d.tripulacao?`Tripulação do Reporte: ${d.tripulacao}`:'',
+    d.interrompeuProgramacao==='Sim'?`Programação prevista cumprida: ${d.programacaoCumprida||'—'}`:'',
     `Registrado em: ${new Date().toLocaleString('pt-BR')} por ${session.name||'Coordenador'}`
   ].filter(Boolean).join('\n');
 }
 function reviewIndisponibilizar(tail){
   const d=indispCollectFormData();
   if(!d.tipoIndisponibilidade||!d.dataInicio)return alert('Preencha o tipo e o início da indisponibilidade.');
-  if(!d.programacaoCumprida)return alert('Informe se a programação prevista foi cumprida.');
+  if(!d.interrompeuProgramacao)return alert('Informe se a indisponibilidade interrompeu uma programação de voo.');
+  if(d.interrompeuProgramacao==='Sim'&&!d.programacaoCumprida)return alert('Informe se a programação prevista foi cumprida.');
   window._indispPending={tail,data:d};
   const emailBlockVisible=!document.getElementById('indispEmailBlock').classList.contains('hidden');
   const emails=emailBlockVisible?document.getElementById('indispEmails').value.trim():indispDefaultEmails();
@@ -4461,10 +4515,21 @@ async function finalizeIndisponibilizar(){
     alert('Não foi possível registrar a indisponibilidade: '+(e?.message||'erro desconhecido'));
   }
 }
+function toggleIndispInterrompeu(){
+  const v=(document.querySelector('input[name="indispInterrompeu"]:checked')||{}).value;
+  document.getElementById('indispVooBlock').classList.toggle('hidden',v!=='Sim');
+  document.querySelectorAll('input[name="indispInterrompeu"]').forEach(r=>r.closest('label').classList.toggle('indisp-pill-checked',r.checked));
+  if(v!=='Sim'){
+    document.querySelectorAll('input[name="indispProgCumprida"]').forEach(r=>{r.checked=false;r.closest('label').classList.remove('indisp-pill-checked');});
+    document.getElementById('indispEmailBlock').classList.add('hidden');
+    document.getElementById('indispOcorrenciaBlock').classList.add('hidden');
+  }
+}
 function toggleIndispProgramacao(){
   const v=(document.querySelector('input[name="indispProgCumprida"]:checked')||{}).value;
   document.getElementById('indispEmailBlock').classList.toggle('hidden',v!=='Sim');
   document.getElementById('indispOcorrenciaBlock').classList.toggle('hidden',v!=='Não');
+  document.querySelectorAll('input[name="indispProgCumprida"]').forEach(r=>r.closest('label').classList.toggle('indisp-pill-checked',r.checked));
 }
 async function autoTranslateIndispDesc(scope){
   // scope 'up' = modal "Atualizar indisponibilidade"; qualquer outro valor
