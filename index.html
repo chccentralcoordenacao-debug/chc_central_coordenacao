@@ -5828,8 +5828,8 @@ async function openConfigPanel(key){
   const formButtons=isEditing
     ?`<button class="tool-btn" onclick="cancelConfigEdit('${key}')">CANCELAR</button><button class="tool-btn primary" onclick="saveConfigRecord('${key}')">💾 SALVAR EDIÇÃO</button>`
     :`<button class="tool-btn primary" onclick="saveConfigRecord('${key}')">＋ ADICIONAR</button>`;
-  const showAircraftForm=key==='aeronaves' ? (configFormOpen||isEditing) : true;
-  const aircraftNewButton=key==='aeronaves' ? `<button class="tool-btn primary" onclick="newConfigRecord('aeronaves')">＋ NOVO</button>` : '';
+  const showAircraftForm=(key==='aeronaves'||key==='tripulacao') ? (configFormOpen||isEditing) : true;
+  const aircraftNewButton=(key==='aeronaves'||key==='tripulacao') ? `<button class="tool-btn primary" onclick="newConfigRecord('${key}')">＋ NOVO</button>` : '';
   const formHTML=showAircraftForm ? `<div class="workspace-card"><div class="config-section-note">${formNote}</div><div class="config-form-grid">${fields}</div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">${formButtons}</div></div>` : '';
   const searchFields=CONFIG_SEARCH_FIELDS[key];
   const searchBoxHTML=searchFields?`<div style="margin:0 0 12px"><input type="text" id="configSearchInput" placeholder="Pesquisar por ${searchFields.join(' ou ').toLowerCase()}…" value="${esc(configSearchTerm)}" oninput="onConfigSearchInput('${key}',this.value)" style="width:100%;box-sizing:border-box"></div>`:'';
