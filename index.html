@@ -270,7 +270,7 @@
 .aircraft-card-clickable:hover{transform:translateY(-2px);border-color:#ffc0a0;box-shadow:0 8px 20px rgba(23,29,36,.10)}
 .aircraft-card-clickable:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 .aircraft-card-hint{margin-top:8px;padding-top:7px;border-top:1px dashed #edf0f2;font-size:8px;font-weight:950;color:var(--orange);letter-spacing:.25px}
-.indisp-info{margin-top:8px;padding:8px 9px;border-radius:8px;background:#fff6f6;border:1px solid #f5d3d3;color:#7a2a2a;font-size:9.5px;font-weight:700;line-height:1.5}
+.indisp-info{margin-top:8px;padding:8px 9px;border-radius:8px;background:#fff6f6;border:1px solid #f5d3d3;color:#7a2a2a;font-size:14px;font-weight:700;line-height:1.55}.indisp-history-timeline{display:grid;gap:10px;margin-top:12px}.indisp-history-event{background:#fff;border:1px solid #ead6d2;border-left:4px solid #e53935;border-radius:10px;padding:11px 12px;font-size:14px;line-height:1.55}.indisp-history-event-title{font-size:14px;font-weight:950;color:#a52c25;margin-bottom:5px}.indisp-history-event small{font-size:13px;color:#7a2a2a;font-weight:700}
 .fleet-health-aircraft-clickable{cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
 .fleet-health-aircraft-clickable:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(23,29,36,.09);border-color:#ffc0a0}
 .fleet-health-aircraft-clickable:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
@@ -4140,29 +4140,56 @@ function openIndispDetalhesModal(tail){
    window._indispOpenByTail (que só tem os casos em aberto), monta o
    modal direto a partir do próprio evento do histórico (ev), que já traz
    todos os campos registrados no fechamento. */
-function openIndispHistDetalhesModal(tail,ev){
+function indispHistDate(value){
+  if(!value)return '—';
+  const d=new Date(value);
+  return isNaN(d.getTime())?'—':d.toLocaleString('pt-BR');
+}
+function indispHistEventHtml(ev,index){
+  const inicio=indispHistDate(ev.dataInicio||ev.indisponibilizadoEm||ev.inicio);
+  const fim=indispHistDate(ev.disponibilizadoEm||ev.dataFim||ev.fim);
+  return `<div class="indisp-history-event">
+    <div class="indisp-history-event-title">${index===0?'INÍCIO DA INDISPONIBILIDADE':'REGISTRO / ATUALIZAÇÃO '+(index+1)}</div>
+    <b>Tipo:</b> ${esc(ev.tipoIndisponibilidade||ev.tipo||'Não registrado')}<br>
+    <b>Início:</b> ${esc(inicio)}<br>
+    ${fim!=='—'?`<b>Fim:</b> ${esc(fim)}<br>`:''}
+    ${ev.descricaoBR?`<b>Pane Reportada:</b> ${esc(ev.descricaoBR)}<br>`:''}
+    ${ev.acaoCorretiva?`<b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}<br>`:''}
+    ${ev.ata?`<b>ATA:</b> ${esc(ev.ata)}<br>`:''}
+    ${ev.mecanico?`<b>Mecânico:</b> ${esc(ev.mecanico)}<br>`:''}
+    ${ev.inspetor?`<b>Inspetor:</b> ${esc(ev.inspetor)}<br>`:''}
+    ${ev.tripulacao?`<b>Tripulação do Reporte:</b> ${esc(ev.tripulacao)}<br>`:''}
+    ${ev.previsaoRTS?`<b>Previsão de Disponibilidade:</b> ${esc(indispHistDate(ev.previsaoRTS))}<br>`:''}
+    ${ev.disponibilizadoPor?`<b>Disponibilizado por:</b> ${esc(ev.disponibilizadoPor)}<br>`:''}
+    ${ev.observacaoRetorno?`<b>Observação de fechamento:</b> ${esc(ev.observacaoRetorno)}<br>`:''}
+    ${ev.responsavelInformacao?`<b>Responsável pela informação:</b> ${esc(ev.responsavelInformacao)}<br>`:''}
+  </div>`;
+}
+/* Ao clicar em um card concluído, consulta novamente o histórico da matrícula
+   para apresentar a rastreabilidade completa, do início ao fechamento. */
+async function openIndispHistDetalhesModal(tail,ev){
   const byTail=window._indispAllAircraftByTail||{};
   const a=byTail[tail]||{model:'Aeronave CHC',base:'Sem base'};
-  const inicio=ev.dataInicio?new Date(ev.dataInicio).toLocaleString('pt-BR'):'—';
-  const fim=ev.disponibilizadoEm?new Date(ev.disponibilizadoEm).toLocaleString('pt-BR'):'—';
+  const tailArg=JSON.stringify(tail).replace(/'/g,'&#39;');
   document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal indisp-modal">
     <h3>INDISPONIBILIDADE — ${esc(tail)}${ev.numeroRef?`<span class="indisp-ref-badge">#${esc(ev.numeroRef)}</span>`:''}</h3>
     <p>${esc(a.model)}${a.base?' · Base '+esc(a.base):''}</p>
-    <div class="indisp-info" style="margin-top:8px">
-      <b>Tipo:</b> ${esc(ev.tipoIndisponibilidade||'Não registrado')}<br>
-      <b>Início:</b> ${esc(inicio)}<br>
-      <b>Fim:</b> ${esc(fim)}
-      ${ev.descricaoBR?`<br><b>Pane Reportada:</b> ${esc(ev.descricaoBR)}`:''}
-      ${ev.acaoCorretiva?`<br><b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}`:''}
-      ${ev.ata?`<br><b>ATA:</b> ${esc(ev.ata)}`:''}
-      ${ev.mecanico?`<br><b>Mecânico:</b> ${esc(ev.mecanico)}`:''}
-      ${ev.inspetor?`<br><b>Inspetor:</b> ${esc(ev.inspetor)}`:''}
-      ${ev.tripulacao?`<br><b>Tripulação do Reporte:</b> ${esc(ev.tripulacao)}`:''}
-      ${ev.disponibilizadoPor?`<br><b>Disponibilizado por:</b> ${esc(ev.disponibilizadoPor)}`:''}
-      ${ev.observacaoRetorno?`<br><b>Observação:</b> ${esc(ev.observacaoRetorno)}`:''}
-    </div>
+    <div class="indisp-info" id="indispHistDetalhesConteudo">Carregando histórico completo da indisponibilidade…</div>
     <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">FECHAR</button></div>
   </div></div>`);
+  const host=document.getElementById('indispHistDetalhesConteudo');
+  if(!host)return;
+  try{
+    const remoto=await chcData.listIndisponibilidadesHistorico(tail);
+    const lista=Array.isArray(remoto)?remoto.slice():[];
+    const chave=x=>String(x?.numeroRef||'')+'|'+String(x?.dataInicio||'')+'|'+String(x?.disponibilizadoEm||'');
+    const seen=new Set();
+    const todos=[...lista,ev].filter(x=>{const k=chave(x);if(seen.has(k))return false;seen.add(k);return true;});
+    todos.sort((x,y)=>new Date(x.dataInicio||x.indisponibilizadoEm||0)-new Date(y.dataInicio||y.indisponibilizadoEm||0));
+    host.innerHTML=`<div><b>Rastreabilidade completa:</b> início, registros e encerramento da indisponibilidade.</div><div class="indisp-history-timeline">${todos.map((x,i)=>indispHistEventHtml(x,i)).join('')}</div>`;
+  }catch(e){
+    host.innerHTML=indispHistEventHtml(ev,0)+`<small>Não foi possível consultar outros registros: ${esc(e?.message||'erro desconhecido')}</small>`;
+  }
 }
 /* Edita os dados da indisponibilidade em aberto (tipo, descrição, ATA,
    mecânico, inspetor, previsão RTS, tripulação) sem disponibilizar a
