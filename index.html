@@ -271,6 +271,12 @@
 .aircraft-card-clickable:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 .aircraft-card-hint{margin-top:8px;padding-top:7px;border-top:1px dashed #edf0f2;font-size:8px;font-weight:950;color:var(--orange);letter-spacing:.25px}
 .indisp-info{margin-top:8px;padding:8px 9px;border-radius:8px;background:#fff6f6;border:1px solid #f5d3d3;color:#7a2a2a;font-size:14px;font-weight:700;line-height:1.55}.indisp-history-timeline{display:grid;gap:10px;margin-top:12px}.indisp-history-event{background:#fff;border:1px solid #ead6d2;border-left:4px solid #e53935;border-radius:10px;padding:11px 12px;font-size:14px;line-height:1.55}.indisp-history-event-title{font-size:14px;font-weight:950;color:#a52c25;margin-bottom:5px}.indisp-history-event small{font-size:13px;color:#7a2a2a;font-weight:700}.indisp-history-event.update{border-left-color:#f2a900;background:#fffdf6}.indisp-history-event.update .indisp-history-event-title{color:#a56c00}.indisp-history-event.availability{border-left-color:#1eb36b;background:#f8fffb}.indisp-history-event.availability .indisp-history-event-title{color:#168354}.indisp-history-event .indisp-history-stage-badge{display:inline-flex;align-items:center;margin-bottom:7px;padding:4px 9px;border-radius:999px;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.3px}.indisp-history-event.start .indisp-history-stage-badge{background:#ffe9df;color:#b33d1d}.indisp-history-event.update .indisp-history-stage-badge{background:#fff1c9;color:#956d00}.indisp-history-event.availability .indisp-history-stage-badge{background:#e4f7ed;color:#168354}
+/* v203 — histórico: tipografia preta, sem negrito no conteúdo. */
+.indisp-history-intro{color:#111;font-weight:400;line-height:1.5}
+.indisp-history-event,.indisp-history-event *{color:#111;font-weight:400}
+.indisp-history-event-title{color:#111!important;font-weight:400!important;font-size:15px}
+.indisp-history-stage-badge{font-weight:400!important;color:#111!important}
+.indisp-history-body b{font-weight:400!important;color:#111!important}
 .fleet-health-aircraft-clickable{cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
 .fleet-health-aircraft-clickable:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(23,29,36,.09);border-color:#ffc0a0}
 .fleet-health-aircraft-clickable:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
@@ -4145,43 +4151,53 @@ function indispHistDate(value){
   const d=new Date(value);
   return isNaN(d.getTime())?'—':d.toLocaleString('pt-BR');
 }
-function indispHistStage(ev, index, total){
-  const hasFim=!!(ev && (ev.disponibilizadoEm||ev.dataFim||ev.fim));
-  if(index===0)return 'start';
-  if(hasFim)return 'availability';
-  return 'update';
-}
-function indispHistEventHtml(ev,index,total){
-  const stage=indispHistStage(ev,index,total);
+/* O histórico é formado por registros sucessivos da mesma indisponibilidade.
+   O Fim/DisponibilizadoEm de cada linha não deve transformar uma atualização
+   em "disponibilidade": a disponibilidade é sempre a etapa final do conjunto. */
+function indispHistEventHtml(ev,stage,index,total){
   const inicio=indispHistDate(ev.dataInicio||ev.indisponibilizadoEm||ev.inicio);
   const fim=indispHistDate(ev.disponibilizadoEm||ev.dataFim||ev.fim);
-  const title=stage==='start'
-    ? 'INÍCIO DA INDISPONIBILIDADE'
-    : stage==='update'
-      ? 'REGISTRO / ATUALIZAÇÃO '+index
-      : 'DISPONIBILIDADE / ENCERRAMENTO';
-  const badge=stage==='start'
-    ? '● Indisponibilidade iniciada'
-    : stage==='update'
-      ? '↻ Atualização registrada'
-      : '✓ Aeronave disponibilizada';
+  const isStart=stage==='start', isUpdate=stage==='update', isAvailability=stage==='availability';
+  const title=isStart?'INÍCIO DA INDISPONIBILIDADE':isUpdate?'REGISTRO / ATUALIZAÇÃO '+index:'DISPONIBILIDADE / ENCERRAMENTO';
+  const badge=isStart?'● Indisponibilidade iniciada':isUpdate?'↻ Atualização registrada':'✓ Aeronave disponibilizada';
   return `<div class="indisp-history-event ${stage}">
     <div class="indisp-history-event-title">${title}</div>
     <div class="indisp-history-stage-badge">${badge}</div>
-    ${stage!=='availability'?`<b>Tipo:</b> ${esc(ev.tipoIndisponibilidade||ev.tipo||'Não registrado')}<br>`:''}
-    ${inicio!=='—'?`<b>Início:</b> ${esc(inicio)}<br>`:''}
-    ${stage==='availability'&&fim!=='—'?`<b>Disponibilidade:</b> ${esc(fim)}<br>`:''}
-    ${stage!=='availability'&&ev.descricaoBR?`<b>Pane Reportada:</b> ${esc(ev.descricaoBR)}<br>`:''}
-    ${ev.acaoCorretiva?`<b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}<br>`:''}
-    ${ev.ata?`<b>ATA:</b> ${esc(ev.ata)}<br>`:''}
-    ${ev.mecanico?`<b>Mecânico:</b> ${esc(ev.mecanico)}<br>`:''}
-    ${ev.inspetor?`<b>Inspetor:</b> ${esc(ev.inspetor)}<br>`:''}
-    ${ev.tripulacao?`<b>Tripulação do Reporte:</b> ${esc(ev.tripulacao)}<br>`:''}
-    ${ev.previsaoRTS?`<b>Previsão de Disponibilidade:</b> ${esc(indispHistDate(ev.previsaoRTS))}<br>`:''}
-    ${ev.disponibilizadoPor?`<b>Disponibilizado por:</b> ${esc(ev.disponibilizadoPor)}<br>`:''}
-    ${ev.observacaoRetorno?`<b>Observação de fechamento:</b> ${esc(ev.observacaoRetorno)}<br>`:''}
-    ${ev.responsavelInformacao?`<b>Responsável pela informação:</b> ${esc(ev.responsavelInformacao)}<br>`:''}
+    <div class="indisp-history-body">
+      ${ev.tipoIndisponibilidade||ev.tipo?`<b>Tipo:</b> ${esc(ev.tipoIndisponibilidade||ev.tipo)}<br>`:''}
+      ${inicio!=='—'?`<b>Início:</b> ${esc(inicio)}<br>`:''}
+      ${isAvailability&&fim!=='—'?`<b>Disponibilidade:</b> ${esc(fim)}<br>`:''}
+      ${ev.descricaoBR?`<b>Pane Reportada:</b> ${esc(ev.descricaoBR)}<br>`:''}
+      ${ev.acaoCorretiva?`<b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}<br>`:''}
+      ${ev.ata!==undefined&&ev.ata!==''?`<b>ATA:</b> ${esc(ev.ata)}<br>`:''}
+      ${ev.mecanico?`<b>Mecânico:</b> ${esc(ev.mecanico)}<br>`:''}
+      ${ev.inspetor?`<b>Inspetor:</b> ${esc(ev.inspetor)}<br>`:''}
+      ${ev.tripulacao?`<b>Tripulação do Reporte:</b> ${esc(ev.tripulacao)}<br>`:''}
+      ${ev.previsaoRTS?`<b>Previsão de Disponibilidade:</b> ${esc(indispHistDate(ev.previsaoRTS))}<br>`:''}
+      ${ev.disponibilizadoPor?`<b>Disponibilizado por:</b> ${esc(ev.disponibilizadoPor)}<br>`:''}
+      ${ev.observacaoRetorno?`<b>Observação de fechamento:</b> ${esc(ev.observacaoRetorno)}<br>`:''}
+      ${ev.responsavelInformacao?`<b>Responsável pela informação:</b> ${esc(ev.responsavelInformacao)}<br>`:''}
+    </div>
   </div>`;
+}
+function indispHistBuildStages(records){
+  const rows=Array.isArray(records)?records.slice():[];
+  if(!rows.length)return [];
+  rows.sort((a,b)=>{
+    const da=new Date(a.dataAtualizacao||a.atualizadoEm||a.dataInicio||a.indisponibilizadoEm||0).getTime();
+    const db=new Date(b.dataAtualizacao||b.atualizadoEm||b.dataInicio||b.indisponibilizadoEm||0).getTime();
+    return da-db;
+  });
+  const out=[{stage:'start',ev:rows[0],index:0}];
+  for(let i=1;i<rows.length;i++)out.push({stage:'update',ev:rows[i],index:i});
+  /* A disponibilidade é uma etapa própria, usando os dados de fechamento
+     do último registro. Assim o último registro continua aparecendo como
+     atualização e também como encerramento, sem perder nenhum dado. */
+  const last=rows[rows.length-1];
+  if(last.disponibilizadoEm||last.dataFim||last.fim||last.observacaoRetorno||last.disponibilizadoPor){
+    out.push({stage:'availability',ev:last,index:out.length});
+  }
+  return out;
 }
 /* Ao clicar em um card concluído, usa primeiro o histórico que já foi carregado
    na abertura da aba. Assim o modal abre imediatamente, sem uma nova espera
@@ -4207,8 +4223,23 @@ async function openIndispHistDetalhesModal(tail,ev){
     // clicada e, quando existir, a referência da mesma indisponibilidade.
     let relacionados=lista.filter(x=>String(x?.matricula||'').trim().toUpperCase()===String(tail||'').trim().toUpperCase());
     if(ev?.numeroRef){
-      const porRef=relacionados.filter(x=>String(x?.numeroRef||'')===String(ev.numeroRef||''));
-      if(porRef.length)relacionados=porRef;
+      const ref=String(ev.numeroRef||'').trim();
+      const porRef=relacionados.filter(x=>String(x?.numeroRef||'').trim()===ref);
+      /* Se o backend gravou a atualização com referência diferente/vazia,
+         não descarta o restante da cadeia da mesma matrícula. Isso evita que
+         o clique na atualização mostre somente a última etapa. */
+      if(porRef.length>=2)relacionados=porRef;
+      else if(porRef.length===1){
+        const inicioAtual=new Date(ev.dataInicio||ev.indisponibilizadoEm||ev.inicio||0).getTime();
+        const candidatos=relacionados.filter(x=>{
+          if(x===ev)return true;
+          const fimX=new Date(x.disponibilizadoEm||x.dataFim||x.fim||0).getTime();
+          const inicioX=new Date(x.dataInicio||x.indisponibilizadoEm||x.inicio||0).getTime();
+          return (inicioX && inicioAtual && inicioX<=inicioAtual) || (fimX && inicioAtual && fimX<=inicioAtual);
+        });
+        if(candidatos.length>porRef.length)relacionados=candidatos;
+        else relacionados=porRef;
+      }
     }
 
     // Mantém o evento clicado mesmo se ele não estiver no cache por alguma
@@ -4222,19 +4253,15 @@ async function openIndispHistDetalhesModal(tail,ev){
       return true;
     });
 
-    todos.sort((x,y)=>{
-      const dx=new Date(x.dataAtualizacao||x.atualizadoEm||x.dataInicio||x.indisponibilizadoEm||0).getTime();
-      const dy=new Date(y.dataAtualizacao||y.atualizadoEm||y.dataInicio||y.indisponibilizadoEm||0).getTime();
-      return dx-dy;
-    });
-
     if(!todos.length)throw new Error('Nenhum registro encontrado no histórico.');
 
-    host.innerHTML=`<div><b>Rastreabilidade completa:</b> etapas da indisponibilidade, atualizações e disponibilidade.</div><div class="indisp-history-timeline">${todos.map((x,i)=>indispHistEventHtml(x,i,todos.length)).join('')}</div>`;
+    const etapas=indispHistBuildStages(todos);
+    host.innerHTML=`<div class="indisp-history-intro">Rastreabilidade completa: etapas da indisponibilidade, atualizações e disponibilidade.</div><div class="indisp-history-timeline">${etapas.map(x=>indispHistEventHtml(x.ev,x.stage,x.index,etapas.length)).join('')}</div>`;
   }catch(e){
     // Fallback: ainda abre o registro clicado sem deixar o modal preso em
     // "Carregando" caso o cache esteja vazio.
-    host.innerHTML=`<div><b>Rastreabilidade completa:</b></div><div class="indisp-history-timeline">${indispHistEventHtml(ev,0,1)}</div>`;
+    const etapas=indispHistBuildStages([ev]);
+    host.innerHTML=`<div class="indisp-history-intro">Rastreabilidade completa: etapas da indisponibilidade, atualizações e disponibilidade.</div><div class="indisp-history-timeline">${etapas.map(x=>indispHistEventHtml(x.ev,x.stage,x.index,etapas.length)).join('')}</div>`;
   }
 }
 /* Edita os dados da indisponibilidade em aberto (tipo, descrição, ATA,
