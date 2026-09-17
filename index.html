@@ -5896,7 +5896,7 @@ function setAtendimentoDate(v){
 
 let currentSection='painel';
 async function showSection(section){
-  if(section==='analiseOperacional'){ if(!isAdministrator()){alert('A Análise Operacional é exclusiva para Administradores.');return;} renderRelatorios(); return; }
+  if(section==='analiseOperacional'){ if(!isAdministrator()){alert('A Análise Operacional é exclusiva para Administradores.');return;} currentSection='relatorios';sectionPainel.classList.add('hidden');sectionWorkspace.classList.remove('hidden');renderRelatorios(); return; }
   const required=section==='painel'?'painel':section==='operacao'?'operacao':section==='atendimento'?'atendimento':section==='historico'?'historico':section==='auditoria'?'auditoria':section==='aeronaves'?'verAeronaves':section==='indisponibilidade'?'verAeronaves':section==='relatorios'?'relatorios':section==='config'?'configuracoes':section==='abastecimento'?'abastecimento':'';
   if(section==='auditoria'&&!isAdministrator()){alert('A Auditoria é exclusiva para Administradores.');return;}
   if(required&&!can(required)){alert('Seu perfil não possui permissão para acessar esta área.');return;}
