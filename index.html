@@ -1412,6 +1412,16 @@ input::placeholder{color:#9AA0A6}
 .user-permission-row{min-height:38px;padding:8px 10px;border-radius:10px}
 .user-permission-row span{font-size:15px;font-weight:800;line-height:1.2}.user-permission-row input{width:18px;height:18px;accent-color:#ff5a2f}.user-inherit-toggle{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--muted);white-space:nowrap}.user-inherit-toggle input{width:15px;height:15px;accent-color:#ff5a2f}
 </style>
+<style id="v205-peso-decolagem-summary">
+#detailsModal .weight-tow-summary{background:#fff4eb!important;border:1px solid #ffd0b0!important;color:#111!important;cursor:pointer!important;transition:.16s ease!important;box-shadow:none!important;user-select:none!important}
+#detailsModal .weight-tow-summary:hover{background:#ffefe3!important;border-color:#ffb889!important}
+#detailsModal .weight-tow-summary:focus{outline:2px solid #f4a261!important;outline-offset:2px}
+#detailsModal .weight-tow-summary>span:first-child{font-size:11px!important;font-weight:700!important;color:#111!important}
+#detailsModal .weight-tow-summary b{font-size:14px!important;font-weight:700!important;color:#e27b36!important}
+#detailsModal .peso-tow-arrow{font-size:24px!important;line-height:1!important;font-weight:400!important;color:#d98245!important;margin-left:6px!important}
+#detailsModal .peso-decolagem-details{display:block!important}
+#detailsModal .peso-decolagem-details.is-collapsed{display:none!important}
+</style>
 </head><body><div class="login" id="loginScreen">
   <button class="login-exit" type="button" onclick="voltarTelaInicial()">↪ <span>SAIR</span></button>
   <div class="login-bg-glow"></div>
@@ -5959,13 +5969,16 @@ function atendimentoPesoDisplay(v){
   return Number.isFinite(n)&&n!==0?n.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—';
 }
 function atendimentoStatusClass(f){
-  // Simplificado a pedido: só duas cores no quadro de Atendimento —
-  // verde (no horário) e vermelho (cancelado, transferido ou atrasado).
-  // O azul e o laranja antigos foram removidos.
-  const st=String(f&&f.status||'').toUpperCase();
-  if(st.includes('CANCEL'))return 'danger';
-  if(st.includes('TRANSFER'))return 'danger';
+  const st=String(f&&f.status||deriveFlightStatus(f)||'').toUpperCase();
+  if(st.includes('CANCEL'))return 'cancelado';
+  if(st.includes('TRANSFER'))return 'transferido';
   return 'normal';
+}
+function atendimentoStatusLabel(f){
+  const st=String(f&&f.status||deriveFlightStatus(f)||'').toUpperCase();
+  if(st.includes('CANCEL'))return 'CANCELADO';
+  if(st.includes('TRANSFER'))return 'TRANSFERIDO';
+  return '';
 }
 function isAtendimentoFlightLate(f){
   const log=f&&f.logVoo&&typeof f.logVoo==='object'?f.logVoo:{};
@@ -6014,7 +6027,11 @@ async function renderAtendimento(){
         ? `<div class="atendimento-delay">${delayParts.join(' &nbsp;|&nbsp; ')}</div>`
         : '';
       let statusClass=atendimentoStatusClass(f);
-      if(statusClass!=='danger'&&(late||delayCode||delayObs))statusClass='danger';
+      if(statusClass==='normal'&&(late||delayCode||delayObs))statusClass='danger';
+      const statusLabel=atendimentoStatusLabel(f);
+      const statusBadge=statusLabel
+        ? `<span class=\"atendimento-status-badge ${statusClass}\">${statusLabel}</span>`
+        : '';
       const pmd=ac.pesoMaximo||ac['Peso Máximo de Decolagem (PMD)']||'';
       const pbo=ac.pesoCartaC||ac['Peso Carta C']||'';
       const fuel=(f.pesos&&f.pesos.combustivelTotal!==undefined)?f.pesos.combustivelTotal:(f.combustivelTotal||'');
@@ -6022,7 +6039,7 @@ async function renderAtendimento(){
       const pesoPill=pesoStatusPillHTML(pesoStatus);
       const fJson=JSON.stringify(f).replace(/'/g,'&#39;');
       return `<div class="atendimento-row ${statusClass}${delayLine?' has-delay':''}" role="button" tabindex="0" onclick='showFlightDetails(${fJson})' onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-        <div class="atendimento-date"><span>${esc(formatFlightDate(f))}</span><small class="atendimento-voo-no">Voo ${esc(f.flightNo||'—')}</small></div>
+        <div class="atendimento-date"><span>${esc(formatFlightDate(f))}</span><small class="atendimento-voo-no">Voo ${esc(f.flightNo||'—')}</small>${statusBadge}</div>
         <div class="atendimento-prefix"><b>${esc(tail||'—')}</b><small>${esc(f.cliente||'')}</small></div>
         <div class="atendimento-time">${esc(f.horario||'—')}</div>
         <div class="atendimento-route"><div>${route}</div><div class="atendimento-crew">${crew}</div></div>
@@ -6420,14 +6437,26 @@ function updateAircraftCalc(cargaTotal,tripulacao,combustivelTotal){
     pillEl.innerHTML='';
   }
 }
+function togglePesoDecolagemDetails(){
+  const box=document.getElementById('pesoDecolagemDetails');
+  const row=document.getElementById('pesoDecolagemSummary');
+  if(!box||!row)return;
+  const collapsed=box.classList.toggle('is-collapsed');
+  row.setAttribute('aria-expanded',String(!collapsed));
+  const arrow=row.querySelector('.peso-tow-arrow');
+  if(arrow)arrow.textContent=collapsed?'›':'⌄';
+}
 function updateFlightWeightTotals(){
   const passageiros=pesoNum('pesoPassageiro'),bagagem=pesoNum('pesoBagagem'),carga=pesoNum('pesoCarga'),tripulacao=pesoNum('pesoTripulacao'),combustivelTotal=pesoNum('combustivelTotal');
   const totalCarga=passageiros+bagagem+carga, totalVoo=totalCarga+tripulacao+combustivelTotal;
   const activeModel=activeDetailsFlight?.model||modelOf(activeDetailsFlight?.reg||'');
   const unit=weightUnitForAircraft(activeDetailsFlight?.reg||'',activeModel);
-  const elTotalCarga=document.getElementById('pesoTotalCarga'),elTotalVoo=document.getElementById('pesoTotalVoo');
+  const elTotalCarga=document.getElementById('pesoTotalCarga'),elTotalVoo=document.getElementById('pesoTotalVoo'),elTow=document.getElementById('pesoDecolagemTotal');
   if(elTotalCarga)elTotalCarga.textContent=formatWeight(totalCarga,unit);
   if(elTotalVoo)elTotalVoo.innerHTML=formatWeightBothUnits(totalVoo,unit);
+  const bow=Number(PESO_LOG_AIRCRAFT?.pesoCartaC||0);
+  const tow=bow+totalVoo;
+  if(elTow)elTow.textContent=formatWeight(tow,unit);
   updateAircraftCalc(totalCarga,tripulacao,combustivelTotal);
 }
 function openFlightPesoLog(f){
@@ -6491,9 +6520,11 @@ function openFlightPesoLogRender(f){
         <div class="weight-total-box weight-total-box-cargo"><span>Total de peso</span><b id="pesoTotalCarga">${formatWeight((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0),unit)}</b></div>
       </div>
     </div>
-    <div class="weight-grand-total weight-grand-total-thin"><span>Peso do voo</span><span class="weight-grand-total-right"><b id="pesoTotalVoo">${formatWeightBothUnits((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0)+(Number(displayValue(w.tripulacao))||0)+(Number(displayValue(w.combustivelTotal))||0),unit)}</b><span id="pesoVooStatusPill"></span></span></div>
+    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary" role="button" tabindex="0" aria-expanded="true" title="Clique para visualizar os detalhes do cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>Peso de decolagem</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal">${formatWeightFromKg((Number(ap?.pesoCartaC)||0)+(Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0)+(Number(displayValue(w.tripulacao))||0)+(Number(displayValue(w.combustivelTotal))||0),unit)}</b><span class="peso-tow-arrow" aria-hidden="true">›</span></span></div>
+    <div id="pesoDecolagemDetails" class="peso-decolagem-details">
     ${aircraftLimitsNote}
     <div class="weight-note"><small>Unidade operacional: ${unit}. PMD, BOW e limites da aeronave seguem exatamente a unidade cadastrada em Configurações › Aeronaves. Os pesos lançados no voo são armazenados internamente em kg.</small></div>
+    </div>
     <div class="flight-log-panel">
       <div class="flight-log-section">
         <div class="flight-log-section-title">IDA</div>
@@ -6993,8 +7024,15 @@ function voltarTelaInicial(){
 .atendimento-row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px;background:#20b36b}
 .atendimento-row.warning::before{background:#f0a000}
 .atendimento-row.danger::before{background:#e04a4a}
+.atendimento-row.cancelado{background:#fff5f5}
+.atendimento-row.cancelado::before{background:#d93636}
+.atendimento-row.transferido{background:#f7f1ff}
+.atendimento-row.transferido::before{background:#7c55c8}
 .atendimento-row.done::before{background:#3f82d8}
 .atendimento-date{font-weight:900}
+.atendimento-status-badge{display:inline-flex;align-items:center;margin-top:5px;padding:3px 7px;border-radius:999px;font-size:8px;font-weight:900;letter-spacing:.2px}
+.atendimento-status-badge.cancelado{background:#fde8e8;color:#c52f3d;border:1px solid #f3bfc3}
+.atendimento-status-badge.transferido{background:#eee5ff;color:#7042b8;border:1px solid #d7c3fa}
 .atendimento-prefix b{display:block;font-size:13px;font-weight:950}
 .atendimento-prefix small{display:block;margin-top:2px;color:var(--muted);font-size:9px;font-weight:750}
 .atendimento-time{font-size:13px;font-weight:950}
