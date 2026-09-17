@@ -1413,6 +1413,21 @@ input::placeholder{color:#9AA0A6}
 .weight-takeoff-details{border:1px solid #f2d1bc;border-top:0;border-radius:0 0 12px 12px;background:#fffaf7;padding:12px 14px}.weight-calc-title{font-size:10px;font-weight:950;color:#5e4c43;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}.weight-calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.weight-calc-column{min-width:0}.weight-calc-column>div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0e5de;font-size:10px}.weight-calc-column>div:last-child{border-bottom:0}.weight-calc-column span{color:#6f777d;font-weight:750}.weight-calc-column b{color:#26333b;font-weight:950;text-align:right}.weight-calc-result{padding-left:14px;border-left:1px solid #f0e5de}.weight-calc-result>div:first-child b{font-size:9px;color:#8a6c5b;max-width:260px}.weight-calc-emphasis{margin:3px 0;padding:8px 0!important}.weight-calc-emphasis span{font-weight:950;color:#b84d1b}.weight-calc-emphasis b{font-size:16px;color:#b84d1b}.weight-calc-margin b.calc-safe{color:#0f8a52}.weight-calc-margin b.calc-excess{color:#c0263a}
 .atendimento-row.status-red{background:#fff0f1}.atendimento-row.status-red:hover{background:#ffe5e8}.atendimento-row.status-red::before{background:#d92f39}.atendimento-row.status-red .atendimento-prefix b,.atendimento-row.status-red .atendimento-time,.atendimento-row.status-red .atendimento-date{color:#c0263a}.atendimento-row.status-red .atendimento-route-pill{background:#fff;border-color:#f3c1c6}
 @media(max-width:760px){.weight-takeoff-summary{align-items:flex-start;padding:10px 12px}.weight-takeoff-summary-right{gap:6px;flex-wrap:wrap;justify-content:flex-end}.weight-takeoff-summary-right>b{font-size:16px}.weight-calc-grid{grid-template-columns:1fr;gap:8px}.weight-calc-result{padding-left:0;border-left:0;border-top:1px solid #f0e5de;padding-top:8px}}
+<style id="v192-weight-accordion">
+/* v192 — Peso de Decolagem: faixa ocupa toda a largura e abre os detalhes abaixo. */
+#detailsModal .weight-takeoff-summary{grid-column:1/-1!important;width:100%!important;box-sizing:border-box!important;}
+#detailsModal .weight-takeoff-details{grid-column:1/-1!important;width:100%!important;box-sizing:border-box!important;}
+#detailsModal .weight-takeoff-summary{min-height:58px!important;padding:8px 14px!important;}
+#detailsModal .weight-takeoff-summary-left{flex:1 1 auto!important;min-width:0!important;}
+#detailsModal .weight-takeoff-summary-left b{font-size:11px!important;line-height:1.15!important;}
+#detailsModal .weight-takeoff-summary-left small{font-size:8px!important;}
+#detailsModal .weight-takeoff-summary-right{margin-left:auto!important;}
+#detailsModal .weight-takeoff-details{padding:12px 14px!important;}
+@media(max-width:760px){
+  #detailsModal .weight-takeoff-summary{min-height:54px!important;padding:8px 10px!important;}
+  #detailsModal .weight-takeoff-summary-left{gap:7px!important;}
+  #detailsModal .weight-takeoff-summary-right{flex:0 0 auto!important;}
+}
 </style>
 </head><body><div class="login" id="loginScreen">
   <button class="login-exit" type="button" onclick="voltarTelaInicial()">↪ <span>SAIR</span></button>
@@ -4705,7 +4720,7 @@ function downloadAuditPdf(){
   min-height:43px!important;
 }
 </style>
-</head><body><div class="head"><h1>🛡️ AUDITORIA — VOO ${auditPdfEscape(f.flightNo||'—')}</h1><div class="sub">Histórico completo das alterações registradas — CHC Central</div></div><div class="meta"><div class="box"><span>CLIENTE</span><b>${auditPdfEscape(f.cliente||'—')}</b></div><div class="box"><span>BASE</span><b>${auditPdfEscape(f.base||'—')}</b></div><div class="box"><span>PREFIXO</span><b>${auditPdfEscape(f.reg||'—')}</b></div><div class="box"><span>STATUS</span><b>${auditPdfEscape(auditStatusLabel(f))}</b></div><div class="box"><span>DATA</span><b>${auditPdfEscape(formatFlightDate(f))}</b></div></div><div class="grid"><div class="panel"><div class="title">🧭 FASES DO VOO</div>${phases}</div><div class="panel"><div class="title">📝 HISTÓRICO DE ALTERAÇÕES</div>${hist}</div></div><div class="footer">Documento gerado pela CHC Central · ${auditPdfEscape(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'}).format(new Date()))}</div><script>window.onload=()=>setTimeout(()=>window.print(),250);<\/script><!-- v191: TOW compacto expansível + Atendimento cancelado/transferido em vermelho -->
+</head><body><div class="head"><h1>🛡️ AUDITORIA — VOO ${auditPdfEscape(f.flightNo||'—')}</h1><div class="sub">Histórico completo das alterações registradas — CHC Central</div></div><div class="meta"><div class="box"><span>CLIENTE</span><b>${auditPdfEscape(f.cliente||'—')}</b></div><div class="box"><span>BASE</span><b>${auditPdfEscape(f.base||'—')}</b></div><div class="box"><span>PREFIXO</span><b>${auditPdfEscape(f.reg||'—')}</b></div><div class="box"><span>STATUS</span><b>${auditPdfEscape(auditStatusLabel(f))}</b></div><div class="box"><span>DATA</span><b>${auditPdfEscape(formatFlightDate(f))}</b></div></div><div class="grid"><div class="panel"><div class="title">🧭 FASES DO VOO</div>${phases}</div><div class="panel"><div class="title">📝 HISTÓRICO DE ALTERAÇÕES</div>${hist}</div></div><div class="footer">Documento gerado pela CHC Central · ${auditPdfEscape(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'}).format(new Date()))}</div><script>window.onload=()=>setTimeout(()=>window.print(),250);<\/script><!-- v192: TOW full-width expansível + detalhes abaixo -->
 </body></html>`);
   w.document.close();
 }
