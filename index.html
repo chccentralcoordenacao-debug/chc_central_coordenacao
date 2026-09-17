@@ -1443,8 +1443,8 @@ input::placeholder{color:#9AA0A6}
 .indisp-fieldset{background:#fbfbfc}
 .indisp-fieldset .indisp-fieldset{background:#fff}
 .indisp-radio-row{gap:10px!important}
-.indisp-radio-row label{padding:9px 20px;border:1.5px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
-.indisp-radio-row label.indisp-pill-checked{border-color:var(--orange);background:#fff3ec;color:var(--orange)}
+.indisp-radio-row label{padding:9px 20px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--text);font-weight:900;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+.indisp-radio-row label.indisp-pill-checked{border-color:var(--orange);background:var(--orange);color:#fff}
 .indisp-radio-row input{margin:0}
 .indisp-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:14px}
 @media(max-width:480px){.indisp-row-2{grid-template-columns:1fr}}
@@ -4616,23 +4616,21 @@ function openDisponibilizarModal(tail){
   document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal indisp-modal" style="width:min(620px,100%)">
     <h3>DISPONIBILIZAR ${esc(tail)}</h3>
     <p style="font-size:12px">${esc(target.model)}${info.tipo?`<br>Tipo registrado: ${esc(info.tipo)}`:''}</p>
-    <div class="indisp-row-2">
-      <label style="${f14}">Fim Real (comunicado)
-        <input id="dispFimReal" type="datetime-local" value="${agoraLocal}">
-      </label>
+    <input id="dispFimReal" type="hidden" value="${agoraLocal}">
+    <div class="indisp-row-2" style="grid-template-columns:1fr">
       <label style="${f14}">Responsável pela Informação
         <input id="dispResponsavel" type="text" value="${esc(session.name||'')}" placeholder="Nome de quem está fechando">
       </label>
     </div>
     <fieldset class="indisp-fieldset">
       <legend>Fechamento da Indisponibilidade</legend>
-      <label style="${f14}">Ação Corretiva
-        <textarea id="dispAcaoCorretiva" placeholder="O que foi feito para resolver...">${esc(info.acaoCorretiva||'')}</textarea>
-      </label>
-      <label style="${f14};margin-top:10px;display:block">Pane Constatada <small style="font-weight:400">(o que foi encontrado/confirmado)</small>
+      <label style="${f14}">Pane Constatada <small style="font-weight:400">(o que foi encontrado/confirmado)</small>
         <textarea id="dispPaneConstatada" placeholder="Ex.: confirmada falha no gerador...">${esc(info.paneConstatada||'')}</textarea>
       </label>
-      <div class="indisp-grid" style="margin-top:10px">
+      <label style="${f14};margin-top:10px;display:block">Ação Corretiva
+        <textarea id="dispAcaoCorretiva" placeholder="O que foi feito para resolver...">${esc(info.acaoCorretiva||'')}</textarea>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
         <label style="${f14}">Ordem de Serviço<input id="dispOrdemServico" type="text" placeholder="Ex.: 14'272'131" value="${esc(info.ordemServico||'')}"></label>
         <label style="${f14}">Referência Técnica<input id="dispReferenciaTecnica" type="text" placeholder="Ex.: REF. 39-A-24-31-00-00A-320A-A" value="${esc(info.referenciaTecnica||'')}"></label>
         <label style="${f14}">Local da Pane<input id="dispLocalPane" type="text" placeholder="Ex.: SBCB" value="${esc(info.localPane||target.base||'')}"></label>
@@ -4650,7 +4648,6 @@ function openDisponibilizarModal(tail){
     <label style="display:block;margin-top:10px;${f14};font-weight:800">Enviar e-mail para
       <textarea id="dispEmails" class="tool-btn" style="width:100%;margin-top:4px;min-height:40px;display:block;${f14}">${esc(indispDefaultEmails())}</textarea>
     </label>
-    <label style="display:flex;align-items:center;gap:6px;margin-top:10px;${f14}"><input type="checkbox" id="dispSendEmail" checked> Abrir e-mail de aviso ao confirmar</label>
     <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">CANCELAR</button><button class="tool-btn primary" onclick='confirmDisponibilizar(${tailArg})'>CONFIRMAR</button></div>
   </div></div>`);
 }
@@ -4675,7 +4672,7 @@ async function confirmDisponibilizar(tail){
   const validado=document.getElementById('dispValidado').checked;
   const fimRealValidado=validado?document.getElementById('dispFimValidado').value:'';
   const emails=document.getElementById('dispEmails').value.trim();
-  const sendEmail=document.getElementById('dispSendEmail').checked;
+  const sendEmail=true;
   const info=(window._indispOpenByTail||{})[tail]||{};
   const target=(window._indispRecords||[]).find(a=>a.tail===tail)||{};
   closeAircraftModal();
