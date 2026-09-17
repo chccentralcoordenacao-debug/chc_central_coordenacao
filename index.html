@@ -1441,6 +1441,16 @@ input::placeholder{color:#9AA0A6}
 #detailsModal .peso-decolagem-details{display:block!important}
 #detailsModal .peso-decolagem-details.is-collapsed{display:none!important}
 </style>
+
+<style id="v210-peso-corrections">
+#detailsModal .peso-tow-summary{min-height:54px!important}
+#detailsModal .peso-tow-arrow{font-size:64px!important;line-height:.7!important;font-weight:900!important;min-width:58px!important;min-height:54px!important;margin-left:16px!important;color:#c96f32!important}
+#detailsModal .peso-tow-status{font-size:10px!important;font-weight:900!important;padding:7px 13px!important}
+#detailsModal .peso-tow-status.danger{background:#fbe3e3!important;color:#b51f32!important;border:1px solid #e7a2aa!important}
+#detailsModal .peso-tow-status.ok{background:#e5f7ed!important;color:#0f7a3d!important}
+#detailsModal .peso-tow-value{font-size:14px!important}
+#detailsModal .peso-calc-item b.peso-over{color:#b51f32!important}
+</style>
 </head><body><div class="login" id="loginScreen">
   <button class="login-exit" type="button" onclick="voltarTelaInicial()">↪ <span>SAIR</span></button>
   <div class="login-bg-glow"></div>
@@ -6419,7 +6429,13 @@ function getAircraftByTail(tail){
    A tripulação não é somada novamente ao TOW porque o DOM já representa a massa operacional usada pelo sistema oficial.
    Para cadastros antigos sem DOM, Peso Carta C é usado como fallback.
 */
+const OFFICIAL_DOM_KG={
+  // Referência informada pelo usuário a partir do sistema oficial da empresa.
+  'PS-LSC':4779
+};
 function aircraftDomKg(ac){
+  const tail=normalizeTail(ac&&ac.tail||'');
+  if(Object.prototype.hasOwnProperty.call(OFFICIAL_DOM_KG,tail)) return OFFICIAL_DOM_KG[tail];
   const dom=Number(ac&&ac.pesoDom||0);
   return dom||Number(ac&&ac.pesoCartaC||0)||0;
 }
@@ -6427,9 +6443,9 @@ function computeFlightPesoStatus(f,ac){
   const pmd=Number(ac&&ac.pesoMaximo||0);
   const dom=aircraftDomKg(ac);
   const w=f&&f.pesos||{};
-  const payload=(w.totalCarga!==undefined&&w.totalCarga!==null&&w.totalCarga!=='')
-    ?Number(w.totalCarga)||0
-    :(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0);
+  // Sempre recalcula o Payload a partir dos campos do voo.
+  // Não usa totalCarga salvo, pois ele pode ser um valor antigo.
+  const payload=(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0);
   const fuel=Number(w.combustivelTotal)||0;
   if(!pmd||!dom)return {state:'nodata'};
   const tow=dom+fuel+payload;
@@ -6488,23 +6504,48 @@ function updateFlightWeightTotals(){
   if(elTotalCarga)elTotalCarga.textContent=formatWeight(totalCarga,unit);
   if(elTotalVoo)elTotalVoo.innerHTML=formatWeightBothUnits(totalVoo,unit);
   const dom=aircraftDomKg(PESO_LOG_AIRCRAFT);
-  // Sistema oficial: Peso de decolagem = DOM + Combustível + Payload.
   const tow=dom+totalCarga+combustivelTotal;
   const pmd=Number(PESO_LOG_AIRCRAFT?.pesoMaximo||0);
   const delta=pmd-tow;
+
+  // Linha-resumo: positivo = margem; negativo = excesso.
   if(elTow)elTow.textContent=formatWeightFromKg(Math.abs(delta),unit);
   const statusEl=document.getElementById('pesoDecolagemStatus');
+  const summaryLabel=document.querySelector('#pesoDecolagemSummary>span:first-child');
   if(statusEl){
     if(pmd&&delta<0){
       statusEl.className='peso-tow-status danger';
       statusEl.textContent='⚠ EXCESSO '+formatWeightFromKg(Math.abs(delta),unit);
+      if(summaryLabel)summaryLabel.textContent='Excesso sobre PMD';
     }else if(pmd){
       statusEl.className='peso-tow-status ok';
       statusEl.textContent='✓ DENTRO DO PESO';
+      if(summaryLabel)summaryLabel.textContent='Margem até PMD';
     }else{
       statusEl.className='peso-tow-status';
       statusEl.textContent='';
+      if(summaryLabel)summaryLabel.textContent='Margem até PMD';
     }
+  }
+
+  // Mantém o detalhamento sincronizado com os campos atuais, inclusive se
+  // o usuário já tiver aberto a seção de cálculo.
+  const detailDom=document.getElementById('pesoCalcDom');
+  const detailPmd=document.getElementById('pesoCalcPmd');
+  const detailAvailable=document.getElementById('pesoCalcAvailable');
+  const detailFuel=document.getElementById('pesoCalcFuel');
+  const detailPayload=document.getElementById('pesoCalcPayload');
+  const detailTow=document.getElementById('pesoCalcTow');
+  const detailMargin=document.getElementById('pesoCalcMargin');
+  if(detailDom)detailDom.textContent=formatWeightFromKg(dom,unit);
+  if(detailPmd)detailPmd.textContent=formatWeightFromKg(pmd,unit);
+  if(detailAvailable)detailAvailable.textContent=formatWeightFromKg(Math.max(0,pmd-dom),unit);
+  if(detailFuel)detailFuel.textContent=formatWeightFromKg(combustivelTotal,unit);
+  if(detailPayload)detailPayload.textContent=formatWeightFromKg(totalCarga,unit);
+  if(detailTow)detailTow.textContent=formatWeightFromKg(tow,unit);
+  if(detailMargin){
+    detailMargin.textContent=formatWeightFromKg(Math.abs(delta),unit);
+    detailMargin.classList.toggle('peso-over',delta<0);
   }
   updateAircraftCalc(totalCarga,tripulacao,combustivelTotal);
 }
@@ -6569,17 +6610,17 @@ function openFlightPesoLogRender(f){
         <div class="weight-total-box weight-total-box-cargo"><span>Total de peso</span><b id="pesoTotalCarga">${formatWeight((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0),unit)}</b></div>
       </div>
     </div>
-    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary" role="button" tabindex="0" aria-expanded="false" title="Clique para visualizar o cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>Margem até PMD</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal" class="peso-tow-value">${formatWeightFromKg(Math.abs((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b><span id="pesoDecolagemStatus" class="peso-tow-status"></span><span class="peso-tow-arrow" aria-hidden="true">›</span></span></div>
+    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary" role="button" tabindex="0" aria-expanded="false" title="Clique para visualizar o cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>${((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)))<0?'Excesso sobre PMD':'Margem até PMD'}</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal" class="peso-tow-value">${formatWeightFromKg(Math.abs((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b><span id="pesoDecolagemStatus" class="peso-tow-status"></span><span class="peso-tow-arrow" aria-hidden="true">›</span></span></div>
     <div id="pesoDecolagemDetails" class="peso-decolagem-details is-collapsed">
     ${aircraftLimitsNote}
     <div class="peso-calc-grid">
-      <div class="peso-calc-item"><span>DOM (peso vazio)</span><b>${formatWeightFromKg(aircraftDomKg(ap),unit)}</b></div>
-      <div class="peso-calc-item"><span>PMD (peso máximo)</span><b>${formatWeightFromKg(Number(ap?.pesoMaximo)||0,unit)}</b></div>
-      <div class="peso-calc-item"><span>Carga disponível</span><b>${formatWeightFromKg(Math.max(0,(Number(ap?.pesoMaximo)||0)-aircraftDomKg(ap)),unit)}</b></div>
-      <div class="peso-calc-item"><span>Combustível</span><b>${formatWeightFromKg(Number(w.combustivelTotal)||0,unit)}</b></div>
-      <div class="peso-calc-item"><span>Payload (PAX + bagagem + carga)</span><b>${formatWeightFromKg((Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0),unit)}</b></div>
-      <div class="peso-calc-item total"><span>Peso de decolagem</span><b>${formatWeightFromKg(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0),unit)}</b></div>
-      <div class="peso-calc-item total"><span>Margem restante</span><b class="peso-margin-value">${formatWeightFromKg((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)),unit)}</b></div>
+      <div class="peso-calc-item"><span>DOM (peso vazio)</span><b id="pesoCalcDom">${formatWeightFromKg(aircraftDomKg(ap),unit)}</b></div>
+      <div class="peso-calc-item"><span>PMD (peso máximo)</span><b id="pesoCalcPmd">${formatWeightFromKg(Number(ap?.pesoMaximo)||0,unit)}</b></div>
+      <div class="peso-calc-item"><span>Carga disponível</span><b id="pesoCalcAvailable">${formatWeightFromKg(Math.max(0,(Number(ap?.pesoMaximo)||0)-aircraftDomKg(ap)),unit)}</b></div>
+      <div class="peso-calc-item"><span>Combustível</span><b id="pesoCalcFuel">${formatWeightFromKg(Number(w.combustivelTotal)||0,unit)}</b></div>
+      <div class="peso-calc-item"><span>Payload (PAX + bagagem + carga)</span><b id="pesoCalcPayload">${formatWeightFromKg((Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0),unit)}</b></div>
+      <div class="peso-calc-item total"><span>Peso de decolagem</span><b id="pesoCalcTow">${formatWeightFromKg(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0),unit)}</b></div>
+      <div class="peso-calc-item total"><span>Margem restante</span><b id="pesoCalcMargin" class="peso-margin-value">${formatWeightFromKg(Math.abs((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b></div>
     </div>
     <div class="weight-note"><small>Cálculo operacional: Peso de decolagem = DOM + Combustível + Payload.</small></div>
     <div class="weight-note"><small>A tripulação não é somada novamente ao peso de decolagem, seguindo a lógica do sistema oficial.</small></div>
