@@ -1421,6 +1421,13 @@ input::placeholder{color:#9AA0A6}
 #detailsModal .peso-tow-arrow{font-size:30px!important;line-height:1!important;font-weight:400!important;color:#d98245!important;margin-left:6px!important}
 #detailsModal .peso-decolagem-details{display:block!important}
 #detailsModal .peso-decolagem-details.is-collapsed{display:none!important}
+#detailsModal .peso-margin-summary{font-size:11px!important;color:#333!important;margin-top:6px!important}
+#detailsModal .peso-calc-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px 18px!important;margin-top:8px!important}
+#detailsModal .peso-calc-item{display:flex!important;justify-content:space-between!important;gap:10px!important;padding:7px 0!important;border-bottom:1px solid #eee!important;font-size:11px!important;color:#333!important}
+#detailsModal .peso-calc-item b{font-size:12px!important;color:#111!important}
+#detailsModal .peso-calc-item.total{font-size:12px!important;border-bottom:0!important}
+#detailsModal .peso-calc-item.total b{font-size:14px!important;color:#e27b36!important}
+@media(max-width:760px){#detailsModal .peso-calc-grid{grid-template-columns:1fr!important}}
 </style>
 </head><body><div class="login" id="loginScreen">
   <button class="login-exit" type="button" onclick="voltarTelaInicial()">↪ <span>SAIR</span></button>
@@ -6535,11 +6542,19 @@ function openFlightPesoLogRender(f){
         <div class="weight-total-box weight-total-box-cargo"><span>Total de peso</span><b id="pesoTotalCarga">${formatWeight((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0),unit)}</b></div>
       </div>
     </div>
-    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary" role="button" tabindex="0" aria-expanded="true" title="Clique para visualizar os detalhes do cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>Peso de decolagem</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal">${formatWeightFromKg(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0),unit)}</b><span class="peso-tow-arrow" aria-hidden="true">›</span></span></div>
+    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary" role="button" tabindex="0" aria-expanded="true" title="Clique para visualizar a margem restante até o PMD e os detalhes do cálculo" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>Margem até PMD</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal">${formatWeightFromKg(Math.max(0,(Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b><span class="peso-tow-arrow" aria-hidden="true">›</span></span></div>
     <div id="pesoDecolagemDetails" class="peso-decolagem-details">
     ${aircraftLimitsNote}
+    <div class="peso-calc-grid">
+      <div class="peso-calc-item"><span>DOM (peso vazio)</span><b>${formatWeightFromKg(aircraftDomKg(ap),unit)}</b></div>
+      <div class="peso-calc-item"><span>PMD (peso máximo)</span><b>${formatWeightFromKg(Number(ap?.pesoMaximo)||0,unit)}</b></div>
+      <div class="peso-calc-item"><span>Carga disponível</span><b>${formatWeightFromKg(Math.max(0,(Number(ap?.pesoMaximo)||0)-aircraftDomKg(ap)),unit)}</b></div>
+      <div class="peso-calc-item"><span>Combustível</span><b>${formatWeightFromKg(Number(w.combustivelTotal)||0,unit)}</b></div>
+      <div class="peso-calc-item"><span>Payload (PAX + bagagem + carga)</span><b>${formatWeightFromKg((Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0),unit)}</b></div>
+      <div class="peso-calc-item total"><span>Peso de decolagem</span><b>${formatWeightFromKg(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0),unit)}</b></div>
+      <div class="peso-calc-item total"><span>Margem restante</span><b>${formatWeightFromKg((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)),unit)}</b></div>
+    </div>
     <div class="weight-note"><small>Cálculo operacional: Peso de decolagem = DOM + Combustível + Payload.</small></div>
-    <div class="weight-note"><small>DOM: ${formatWeightFromKg(aircraftDomKg(ap),unit)} · Payload: ${formatWeightFromKg((Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0),unit)} · Combustível: ${formatWeightFromKg(Number(w.combustivelTotal)||0,unit)}</small></div>
     <div class="weight-note"><small>A tripulação não é somada novamente ao peso de decolagem, seguindo a lógica do sistema oficial.</small></div>
     </div>
     <div class="flight-log-panel">
@@ -6902,6 +6917,7 @@ function showFlightDetails(f,page=1){
           <div class="row"><label>Peso da tripulação<div class="detail-value">${formatWeightFromKg(w.tripulacao,unit)}</div></label><label>Combustível total<div class="detail-value">${formatWeightFromKg(w.combustivelTotal,unit)}</div></label></div>
           <div class="row"><label>Payload<div class="detail-value detail-total">${formatWeightFromKg(pesoTotalCarga,unit)}</div></label><label>DOM<div class="detail-value">${formatWeightFromKg(aircraftDomKg(aircraftParamsOf(f.reg)),unit)}</div></label></div>
           <div class="row"><label>Combustível<div class="detail-value">${formatWeightFromKg(w.combustivelTotal,unit)}</div></label><label>Peso de decolagem<div class="detail-value detail-total">${formatWeightFromKg(aircraftDomKg(aircraftParamsOf(f.reg))+pesoTotalCarga+(Number(w.combustivelTotal)||0),unit)}</div></label></div>
+          <div class="row"><label>PMD<div class="detail-value">${formatWeightFromKg(aircraftParamsOf(f.reg)?.pesoMaximo,unit)}</div></label><label>Margem restante<div class="detail-value detail-total">${formatWeightFromKg((Number(aircraftParamsOf(f.reg)?.pesoMaximo)||0)-(aircraftDomKg(aircraftParamsOf(f.reg))+pesoTotalCarga+(Number(w.combustivelTotal)||0)),unit)}</div></label></div>
         </div>
       </div>
       <div class="details-page ${detailsPage===3?'active':''}" data-page="3">
