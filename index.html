@@ -270,7 +270,7 @@
 .aircraft-card-clickable:hover{transform:translateY(-2px);border-color:#ffc0a0;box-shadow:0 8px 20px rgba(23,29,36,.10)}
 .aircraft-card-clickable:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 .aircraft-card-hint{margin-top:8px;padding-top:7px;border-top:1px dashed #edf0f2;font-size:8px;font-weight:950;color:var(--orange);letter-spacing:.25px}
-.indisp-info{margin-top:8px;padding:8px 9px;border-radius:8px;background:#fff6f6;border:1px solid #f5d3d3;color:#7a2a2a;font-size:9.5px;font-weight:700;line-height:1.5}
+.indisp-info{margin-top:8px;padding:12px 13px;border-radius:8px;background:#fff6f6;border:1px solid #f5d3d3;color:#7a2a2a;font-size:14px;font-weight:700;line-height:1.65}.indisp-info hr{border:none;border-top:1px solid #f0c9c9;margin:10px 0}.indisp-info-step-title{display:block;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.03em;color:#9c3b3b;margin:10px 0 4px}.indisp-info-step-title:first-child{margin-top:0}
 .fleet-health-aircraft-clickable{cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
 .fleet-health-aircraft-clickable:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(23,29,36,.09);border-color:#ffc0a0}
 .fleet-health-aircraft-clickable:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
@@ -4144,20 +4144,34 @@ function openIndispHistDetalhesModal(tail,ev){
   const byTail=window._indispAllAircraftByTail||{};
   const a=byTail[tail]||{model:'Aeronave CHC',base:'Sem base'};
   const inicio=ev.dataInicio?new Date(ev.dataInicio).toLocaleString('pt-BR'):'—';
+  const previsaoRTS=ev.previsaoRTS?new Date(ev.previsaoRTS).toLocaleString('pt-BR'):'';
   const fim=ev.disponibilizadoEm?new Date(ev.disponibilizadoEm).toLocaleString('pt-BR'):'—';
+  const fimValidado=ev.fimRealValidado?new Date(ev.fimRealValidado).toLocaleString('pt-BR'):'';
+  const subtipo=indispSubtipoFromTipo(ev.tipoIndisponibilidade);
   document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal indisp-modal">
     <h3>INDISPONIBILIDADE — ${esc(tail)}${ev.numeroRef?`<span class="indisp-ref-badge">#${esc(ev.numeroRef)}</span>`:''}</h3>
     <p>${esc(a.model)}${a.base?' · Base '+esc(a.base):''}</p>
-    <div class="indisp-info" style="margin-top:8px">
+    <div class="indisp-info">
+      <span class="indisp-info-step-title">1. Abertura da indisponibilidade</span>
       <b>Tipo:</b> ${esc(ev.tipoIndisponibilidade||'Não registrado')}<br>
-      <b>Início:</b> ${esc(inicio)}<br>
-      <b>Fim:</b> ${esc(fim)}
-      ${ev.descricaoBR?`<br><b>Pane Reportada:</b> ${esc(ev.descricaoBR)}`:''}
-      ${ev.acaoCorretiva?`<br><b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}`:''}
+      ${subtipo?`<b>Subtipo:</b> ${esc(subtipo)}<br>`:''}
+      <b>Aeronave indisponível às:</b> ${esc(inicio)}
       ${ev.ata?`<br><b>ATA:</b> ${esc(ev.ata)}`:''}
+      ${ev.descricaoBR?`<br><b>Pane Reportada:</b> ${esc(ev.descricaoBR)}`:''}
       ${ev.mecanico?`<br><b>Mecânico:</b> ${esc(ev.mecanico)}`:''}
       ${ev.inspetor?`<br><b>Inspetor:</b> ${esc(ev.inspetor)}`:''}
       ${ev.tripulacao?`<br><b>Tripulação do Reporte:</b> ${esc(ev.tripulacao)}`:''}
+      ${previsaoRTS?`<br><b>Previsão de Disponibilidade (RTS):</b> ${esc(previsaoRTS)}`:''}
+      <hr>
+      <span class="indisp-info-step-title">2. Fechamento / Disponibilização</span>
+      <b>Aeronave disponível às:</b> ${esc(fim)}
+      ${fimValidado?`<br><b>Fim Real (validado):</b> ${esc(fimValidado)}`:''}
+      ${ev.paneConstatada?`<br><b>Pane Constatada:</b> ${esc(ev.paneConstatada)}`:''}
+      ${ev.acaoCorretiva?`<br><b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}`:''}
+      ${ev.ordemServico?`<br><b>Ordem de Serviço:</b> ${esc(ev.ordemServico)}`:''}
+      ${ev.referenciaTecnica?`<br><b>Referência Técnica:</b> ${esc(ev.referenciaTecnica)}`:''}
+      ${ev.localPane?`<br><b>Local da Pane:</b> ${esc(ev.localPane)}`:''}
+      ${ev.responsavelInformacao?`<br><b>Responsável pela Informação:</b> ${esc(ev.responsavelInformacao)}`:''}
       ${ev.disponibilizadoPor?`<br><b>Disponibilizado por:</b> ${esc(ev.disponibilizadoPor)}`:''}
       ${ev.observacaoRetorno?`<br><b>Observação:</b> ${esc(ev.observacaoRetorno)}`:''}
     </div>
@@ -4639,7 +4653,7 @@ function openDisponibilizarModal(tail){
     <label style="display:block;margin-top:10px;${f14};font-weight:800">Observação (opcional)
       <textarea id="dispObs" class="tool-btn" style="width:100%;margin-top:4px;min-height:50px;display:block;${f14}" placeholder="Ex.: conserto concluído, peça substituída..."></textarea>
     </label>
-    <label style="display:flex;align-items:center;gap:6px;margin-top:10px;${f14}"><input type="checkbox" id="dispValidado" onchange="document.getElementById('dispFimValidadoBlock').classList.toggle('hidden',!this.checked)"> Fim real já validado</label>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:10px;${f14}"><input type="checkbox" id="dispValidado" style="width:15px;height:15px;margin:0;accent-color:var(--orange);flex:0 0 15px" onchange="document.getElementById('dispFimValidadoBlock').classList.toggle('hidden',!this.checked)"> Validar disponibilidade</label>
     <div id="dispFimValidadoBlock" class="hidden">
       <label style="display:block;margin-top:8px;${f14};font-weight:800">Fim Real (validado)
         <input id="dispFimValidado" type="datetime-local" class="tool-btn" style="width:100%;margin-top:4px;display:block;${f14}" value="${agoraLocal}">
@@ -4698,6 +4712,7 @@ async function confirmDisponibilizar(tail){
         acaoCorretiva?`Ação Corretiva: ${acaoCorretiva}`:'',
         ordemServico?`Ordem de serviço: ${ordemServico}`:'',
         referenciaTecnica?`Referência Técnica: ${referenciaTecnica}`:'',
+        info.ata?`ATA: ${info.ata}`:'',
         localPane?`Local Pane: ${localPane}`:'',
         info.mecanico?`Mecânico: ${info.mecanico}`:'',
         responsavelInformacao?`Responsável pela Informação: ${responsavelInformacao}`:''
