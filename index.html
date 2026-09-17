@@ -1418,7 +1418,7 @@ input::placeholder{color:#9AA0A6}
 #detailsModal .weight-tow-summary:focus{outline:2px solid #f4a261!important;outline-offset:2px}
 #detailsModal .weight-tow-summary>span:first-child{font-size:11px!important;font-weight:700!important;color:#111!important}
 #detailsModal .weight-tow-summary b{font-size:14px!important;font-weight:700!important;color:#e27b36!important}
-#detailsModal .peso-tow-arrow{font-size:30px!important;line-height:1!important;font-weight:400!important;color:#d98245!important;margin-left:6px!important}
+#detailsModal .peso-tow-arrow{font-size:48px!important;line-height:.8!important;font-weight:800!important;color:#c96f32!important;margin-left:14px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:42px!important;min-height:42px!important}
 #detailsModal .peso-decolagem-details{display:block!important}
 #detailsModal .peso-decolagem-details.is-collapsed{display:none!important}
 #detailsModal .peso-margin-summary{font-size:11px!important;color:#333!important;margin-top:6px!important}
@@ -1432,11 +1432,11 @@ input::placeholder{color:#9AA0A6}
 
 <style id="peso-v208">
 #detailsModal .peso-tow-summary{cursor:pointer!important;user-select:none!important}
-#detailsModal .peso-tow-arrow{font-size:38px!important;line-height:.8!important;font-weight:700!important;color:#d98245!important;margin-left:10px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:26px!important}
+#detailsModal .peso-tow-arrow{font-size:48px!important;line-height:.8!important;font-weight:900!important;color:#c96f32!important;margin-left:14px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:42px!important;min-height:42px!important}
 #detailsModal .peso-tow-summary .weight-grand-total-right{gap:12px!important}
-#detailsModal .peso-tow-status{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;font-size:9px;font-weight:800;white-space:nowrap;margin-left:6px}
+#detailsModal .peso-tow-status{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap;margin-left:8px}
 #detailsModal .peso-tow-status.ok{background:#e9f7ee;color:#0f7a3d}
-#detailsModal .peso-tow-status.danger{background:#fdeaea;color:#c0263a}
+#detailsModal .peso-tow-status.danger{background:#fdeaea;color:#b51f32;border:1px solid #efb8c0}
 #detailsModal .peso-tow-value{font-size:15px!important;color:#d98245!important;font-weight:800!important}
 #detailsModal .peso-decolagem-details{display:block!important}
 #detailsModal .peso-decolagem-details.is-collapsed{display:none!important}
@@ -6569,7 +6569,7 @@ function openFlightPesoLogRender(f){
         <div class="weight-total-box weight-total-box-cargo"><span>Total de peso</span><b id="pesoTotalCarga">${formatWeight((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0),unit)}</b></div>
       </div>
     </div>
-    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary" role="button" tabindex="0" aria-expanded="false" title="Clique para visualizar o cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>Margem até PMD</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal" class="peso-tow-value">${formatWeightFromKg(Math.abs((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b><span id="pesoDecolagemStatus" class="peso-tow-status ok">✓ DENTRO DO PESO</span><span class="peso-tow-arrow" aria-hidden="true">›</span></span></div>
+    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary" role="button" tabindex="0" aria-expanded="false" title="Clique para visualizar o cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>Margem até PMD</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal" class="peso-tow-value">${formatWeightFromKg(Math.abs((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b><span id="pesoDecolagemStatus" class="peso-tow-status"></span><span class="peso-tow-arrow" aria-hidden="true">›</span></span></div>
     <div id="pesoDecolagemDetails" class="peso-decolagem-details is-collapsed">
     ${aircraftLimitsNote}
     <div class="peso-calc-grid">
@@ -6579,7 +6579,7 @@ function openFlightPesoLogRender(f){
       <div class="peso-calc-item"><span>Combustível</span><b>${formatWeightFromKg(Number(w.combustivelTotal)||0,unit)}</b></div>
       <div class="peso-calc-item"><span>Payload (PAX + bagagem + carga)</span><b>${formatWeightFromKg((Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0),unit)}</b></div>
       <div class="peso-calc-item total"><span>Peso de decolagem</span><b>${formatWeightFromKg(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0),unit)}</b></div>
-      <div class="peso-calc-item total"><span>Margem restante</span><b>${formatWeightFromKg((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)),unit)}</b></div>
+      <div class="peso-calc-item total"><span>Margem restante</span><b class="peso-margin-value">${formatWeightFromKg((Number(ap?.pesoMaximo)||0)-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)),unit)}</b></div>
     </div>
     <div class="weight-note"><small>Cálculo operacional: Peso de decolagem = DOM + Combustível + Payload.</small></div>
     <div class="weight-note"><small>A tripulação não é somada novamente ao peso de decolagem, seguindo a lógica do sistema oficial.</small></div>
@@ -7077,6 +7077,7 @@ function voltarTelaInicial(){
 .peso-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;font-size:9px;font-weight:950;white-space:nowrap;letter-spacing:.2px}
 .peso-pill-ok{background:#e9f7ee;color:#0f7a3d}
 .peso-pill-danger{background:#fdeaea;color:#c0263a}
+.peso-margin-value{color:var(--orange,#d98245)}
 .peso-pill-neutral{background:#f0f2f4;color:#8a929a}
 .atendimento-row{min-width:930px;position:relative;padding:11px 12px;border-bottom:1px solid #edf0f2;color:#28323a;font-size:12px;font-weight:850;cursor:pointer;transition:background .15s ease,transform .1s ease}
 .atendimento-row:last-child{border-bottom:0}
