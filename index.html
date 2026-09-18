@@ -5460,7 +5460,7 @@ function configBanners(){
   return all.filter(c=>(c[3]==='auditoria'||c[3]==='analiseOperacional')?isAdministrator():can(c[4]||'configuracoes'));
 }
 const CONFIG_META={
-  aeronaves:{title:'AERONAVES',desc:'Cadastro e manutenção da frota.',fields:['Matrícula','Modelo','Base','Unidade de Peso','Fabricante','Capacidade de passageiros','Peso Máximo de Decolagem (PMD)','Combustível Máximo','Peso Carta C','DOM','Status','Backup']},
+  aeronaves:{title:'AERONAVES',desc:'Cadastro e manutenção da frota.',fields:['Matrícula','Modelo','Base','Unidade de Peso','Fabricante','Capacidade de passageiros','Peso Máximo de Decolagem (PMD)','Combustível Máximo','Peso Carta C','Status','Backup']},
   plataformas:{title:'PLATAFORMAS',desc:'Cadastro das plataformas utilizadas na operação.',fields:['Nome da plataforma','Código / identificação','Vencimento da Homologação','Status','Observações']},
   tripulacao:{title:'TRIPULAÇÃO',desc:'Cadastro dos profissionais que participam dos voos.',fields:['Nome','Nome de Guerra','Função','Peso (kg)','ANAC','SISPAT','Equipamento','Validade Simulador','Validade CHT','Validade CCF','Validade CRM','Validade HUET','Validade Cargas Perigosas','Validade Aso','Data da Atualização']},
   bases:{title:'BASES / UNIDADES',desc:'Cadastro das bases e unidades de operação.',fields:['Nome','Código','Localização','Status','Observações']},
@@ -5949,7 +5949,7 @@ async function openConfigPanel(key){
     const prefill=editingRecord?String(editingRecord[f]??''):'';
     let control='';
     if(key==='aeronaves' && f==='Modelo'){
-      const opts=['AW-139','AW-189','H-175','S-92'];
+      const opts=['AW139','S92A','S-92'];
       control=`<select id="cfgField${i}" onchange="chcAircraftModelChanged(this.value)"><option value="">Selecione</option>${opts.map(o=>`<option ${o===prefill?'selected':''}>${o}</option>`).join('')}</select>`;
     }else if(key==='aeronaves' && f==='Base'){
       const opts=BASES_CACHE.length?BASES_CACHE:[];
@@ -5980,7 +5980,7 @@ async function openConfigPanel(key){
   }).join('');
   const isEditing=!!editingRecord;
   const formNoteBase=isEditing?`Editando o registro selecionado. Altere os campos e salve, ou cancele para voltar ao cadastro de um novo registro.`:'Preencha os dados abaixo para adicionar um novo registro.';
-  const formNote=key==='aeronaves' ? formNoteBase+' Para a calculadora de peso, selecione a Unidade de Peso da aeronave: AW-139 = KG · S-92 = LB. PMD, BOW e limites devem ser informados na unidade selecionada.' : formNoteBase;
+  const formNote=key==='aeronaves' ? formNoteBase+' Para a calculadora de peso, selecione a Unidade de Peso da aeronave: AW139 = KG · S92A/S-92 = LB. PMD, BOW e limites devem ser informados na unidade selecionada.' : formNoteBase;
   const formButtons=isEditing
     ?`<button class="tool-btn" onclick="cancelConfigEdit('${key}')">CANCELAR</button><button class="tool-btn primary" onclick="saveConfigRecord('${key}')">💾 SALVAR EDIÇÃO</button>`
     :`<button class="tool-btn primary" onclick="saveConfigRecord('${key}')">＋ ADICIONAR</button>`;
@@ -5997,9 +5997,8 @@ async function openConfigPanel(key){
 
 function chcAircraftModelChanged(v){
 const map={
-'AW-139':{fab:'LEONARDO',cap:'12',unit:'KG'},
-'AW-189':{fab:'LEONARDO',cap:'16',unit:'KG'},
-'H-175':{fab:'AIRBUS',cap:'16',unit:'KG'},
+'AW139':{fab:'LEONARDO',cap:'12',unit:'KG'},
+'S92A':{fab:'SIKORSKY',cap:'19',unit:'LB'},
 'S-92':{fab:'SIKORSKY',cap:'19',unit:'LB'}
 };
 const m=map[v]; if(!m)return;
