@@ -1422,13 +1422,16 @@ input::placeholder{color:#9AA0A6}
 #detailsModal .peso-decolagem-details{display:block!important}
 #detailsModal .peso-decolagem-details.is-collapsed{display:none!important}
 #detailsModal .peso-margin-summary{font-size:11px!important;color:#333!important;margin-top:6px!important}
-#detailsModal .peso-calc-grid{display:grid!important;grid-template-columns:1fr!important;gap:6px 18px!important;margin-top:8px!important}
-#detailsModal .peso-calc-item{display:flex!important;justify-content:space-between!important;align-items:baseline!important;gap:16px!important;padding:7px 0!important;border-bottom:1px solid #eee!important;font-size:11px!important;color:#333!important}
+#detailsModal .peso-calc-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:0 22px!important;margin-top:8px!important}
+#detailsModal .peso-calc-item{display:flex!important;justify-content:space-between!important;align-items:baseline!important;gap:14px!important;padding:9px 0!important;border-bottom:1px solid #eee!important;font-size:11px!important;color:#333!important}
 #detailsModal .peso-calc-item span{white-space:nowrap!important}
 #detailsModal .peso-calc-item b{font-size:12px!important;color:#111!important;white-space:nowrap!important;text-align:right!important}
-#detailsModal .peso-calc-item.total{font-size:12px!important;border-bottom:0!important}
+#detailsModal .peso-calc-item.total{font-size:12px!important}
 #detailsModal .peso-calc-item.total b{font-size:14px!important;color:#e27b36!important}
-@media(max-width:760px){#detailsModal .peso-calc-grid{grid-template-columns:1fr!important}}
+#detailsModal .peso-calc-item.peso-margin-row{grid-column:1/-1!important;justify-content:space-between!important;background:#fff8f3!important;border:1px solid #ffd8c1!important;border-radius:10px!important;padding:12px 16px!important;margin-top:8px!important}
+#detailsModal .peso-calc-item.peso-margin-row span{font-size:12px!important;font-weight:900!important;color:#b45a2c!important}
+#detailsModal .peso-calc-item.peso-margin-row b{font-size:18px!important}
+@media(max-width:520px){#detailsModal .peso-calc-grid{grid-template-columns:1fr!important}#detailsModal .peso-calc-item{border-bottom:1px solid #eee!important}}
 </style>
 
 <style id="peso-v208">
@@ -6673,7 +6676,7 @@ function openFlightPesoLogRender(f){
       <div class="peso-calc-item"><span>Combustível</span><b id="pesoCalcFuel">${formatWeightFromKg(Number(w.combustivelTotal)||0,unit)}</b></div>
       <div class="peso-calc-item"><span>Payload (PAX + bagagem + carga)</span><b id="pesoCalcPayload">${formatWeightFromKg((Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0),unit)}</b></div>
       <div class="peso-calc-item total"><span>Peso de decolagem</span><b id="pesoCalcTow">${formatWeightFromKg(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0),unit)}</b></div>
-      <div class="peso-calc-item total"><span>Margem restante</span><b id="pesoCalcMargin" class="peso-margin-value">${formatWeightFromKg(Math.abs((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b></div>
+      <div class="peso-calc-item total peso-margin-row"><span>Margem restante</span><b id="pesoCalcMargin" class="peso-margin-value">${formatWeightFromKg(Math.abs((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b></div>
     </div>
     <div class="weight-note"><small>Cálculo operacional: DOM = Carta C + Tripulação. Peso de decolagem = DOM + Combustível + Payload.</small></div>
     </div>
