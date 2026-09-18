@@ -6702,6 +6702,9 @@ function openFlightPesoLogRender(f){
       </div>
       <div class="flight-log-section">
         <div class="flight-log-section-title"><span>VOLTA</span><button type="button" id="retornoProgramaBtn" class="retorno-toggle${isRetornoPrograma(f)?' active':''}" title="Retorno de Programa — voo decolou e não pousou no destino" onclick="toggleRetornoPrograma()">R</button></div>
+        <div id="retornoObsWrap" class="delay-reason-field${isRetornoPrograma(f)?'':' hidden'}">
+          <label>Justificativa do retorno *<input id="logObservacaoRetorno" type="text" value="${esc(log.observacaoRetornoPrograma||'')}" placeholder="Descreva o motivo do retorno de programa"></label>
+        </div>
         <div class="row">
           <label>Decolagem<input id="logVoltaDecolagem" type="text" class="time24-input" value="${esc(volta.decolagem||'')}"></label>
           <label>Estimado de Pouso<input id="logVoltaEstimado" type="text" class="time24-input" value="${esc(volta.estimadoPouso||'')}"></label>
@@ -6766,17 +6769,40 @@ async function toggleRetornoPrograma(){
   if(!f)return alert('Nenhum voo selecionado.');
   if(!f.id)return alert('Este voo não possui ID de registro. Atualize a lista e tente novamente.');
   const btn=document.getElementById('retornoProgramaBtn');
+  const obsWrap=document.getElementById('retornoObsWrap');
+  const obsInput=document.getElementById('logObservacaoRetorno');
   const estavaAtivo=isRetornoPrograma(f);
+  const ativando=!estavaAtivo;
+
+  /* Ao marcar o retorno de programa (R), a justificativa é obrigatória.
+     Primeiro clique: apenas abre/realça o campo de observação para o
+     operador preencher. Só gravamos no Google Sheets quando o campo já
+     estiver preenchido (segundo clique, ou Enter dentro do campo). */
+  if(ativando){
+    if(obsWrap)obsWrap.classList.remove('hidden');
+    const justificativa=String(obsInput?.value||'').trim();
+    if(!justificativa){
+      if(obsInput)obsInput.focus();
+      alert('Informe a justificativa do retorno antes de confirmar.');
+      return;
+    }
+  }
+
   const baseNo=String(f.flightNo||'').trim().replace(/R$/i,'');
-  const novoFlightNo=estavaAtivo?baseNo:baseNo+'R';
+  const novoFlightNo=ativando?baseNo+'R':baseNo;
+  const novaObservacao=ativando?String(obsInput?.value||'').trim():'';
   if(btn)btn.disabled=true;
   try{
-    const candidate={...f,flightNo:novoFlightNo};
+    const logAtual=(f.logVoo&&typeof f.logVoo==='object'&&!Array.isArray(f.logVoo))?f.logVoo:{};
+    const novoLog={...logAtual,observacaoRetornoPrograma:novaObservacao};
+    const candidate={...f,flightNo:novoFlightNo,logVoo:novoLog};
     const saved=await chcData.updateFlight(f.base||session.base,f,{...candidate,status:deriveFlightStatus(candidate)});
     if(!saved)throw new Error('O Google Sheets não confirmou a alteração.');
     activeDetailsFlight=saved;
     if(typeof detailsFlight!=='undefined' && detailsFlight && String(detailsFlight.id)===String(f.id)) detailsFlight=saved;
-    if(btn){btn.classList.toggle('active',!estavaAtivo);btn.disabled=false;}
+    if(btn){btn.classList.toggle('active',ativando);btn.disabled=false;}
+    if(obsWrap)obsWrap.classList.toggle('hidden',!ativando);
+    if(obsInput)obsInput.value=novaObservacao;
     detailsTitle.textContent='⚖ Peso e Log do voo — '+saved.flightNo+(saved.reg?' • '+saved.reg:'');
     if(typeof renderFlights==='function') await renderFlights('operacao',true);
     if(typeof renderDashboard==='function') await renderDashboard();
