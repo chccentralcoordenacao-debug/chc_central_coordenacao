@@ -1906,7 +1906,8 @@ function formatWeightFromKg(kg,unit){return formatWeight(kgToDisplayWeight(kg,un
 function formatWeightBothUnits(displayVal,unit){
   const altUnit=unit==='LB'?'KG':'LB';
   const altVal=unit==='LB'?(Number(displayVal)||0)*LB_TO_KG:(Number(displayVal)||0)*KG_TO_LB;
-  return formatWeight(displayVal,unit)+'<span class="weight-grand-total-alt">('+formatWeight(altVal,altUnit)+')</span>';
+  const altRounded=Math.round(Number(altVal)||0).toLocaleString('pt-BR')+' '+altUnit;
+  return formatWeight(displayVal,unit)+'<span class="weight-grand-total-alt">('+altRounded+')</span>';
 }
 
 async function renderBases(){
@@ -6600,7 +6601,7 @@ function updateFlightWeightTotals(){
   const delta=pmd-tow;
 
   // Linha-resumo: positivo = margem; negativo = excesso.
-  if(elTow)elTow.textContent=formatWeightFromKg(Math.abs(delta),unit);
+  if(elTow)elTow.innerHTML=formatWeightBothUnits(kgToDisplayWeight(Math.abs(delta),unit),unit);
   const statusEl=document.getElementById('pesoDecolagemStatus');
   const summaryLabel=document.querySelector('#pesoDecolagemSummary>span:first-child');
   const rowEl=document.getElementById('pesoDecolagemSummary');
@@ -6718,7 +6719,7 @@ function openFlightPesoLogRender(f){
         <div class="weight-total-box weight-total-box-cargo"><span>Total de peso</span><b id="pesoTotalCarga">${formatWeight((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0),unit)}</b></div>
       </div>
     </div>
-    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary${(aircraftPmdKg(ap)&&((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)))<0)?' row-danger':(aircraftPmdKg(ap)?' row-ok':'')}" role="button" tabindex="0" aria-expanded="false" title="Clique para visualizar o cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>${((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)))<0?'Excesso sobre PMD':'Margem até PMD'}</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal" class="peso-tow-value">${formatWeightFromKg(Math.abs((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b><span id="pesoDecolagemStatus" class="peso-tow-status"></span><span class="peso-tow-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="15"><path d="M5 2 L15 12 L5 22 L10 22 L20 12 L10 2 Z"/></svg></span></span></div>
+    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary${(aircraftPmdKg(ap)&&((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)))<0)?' row-danger':(aircraftPmdKg(ap)?' row-ok':'')}" role="button" tabindex="0" aria-expanded="false" title="Clique para visualizar o cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>${((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)))<0?'Excesso sobre PMD':'Margem até PMD'}</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal" class="peso-tow-value">${formatWeightBothUnits(kgToDisplayWeight(Math.abs((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit),unit)}</b><span id="pesoDecolagemStatus" class="peso-tow-status"></span><span class="peso-tow-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="15"><path d="M5 2 L15 12 L5 22 L10 22 L20 12 L10 2 Z"/></svg></span></span></div>
     <div id="pesoDecolagemDetails" class="peso-decolagem-details is-collapsed">
     ${aircraftLimitsNote}
     <div class="peso-calc-grid">
