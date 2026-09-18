@@ -2049,7 +2049,7 @@ function coordinatorPermissionsFallback(){
   return {
     painel:true,operacao:true,atendimento:true,historico:true,abastecimento:true,
     criarVoo:true,editarVoo:true,finalizarVoo:true,cancelarVoo:true,transferirVoo:true,adicionarTrecho:true,
-    verAeronaves:true,editarAeronaves:false,relatorios:true,parametros:false,plataformas:false,tripulacao:true,
+    verAeronaves:true,editarAeronaves:true,relatorios:true,parametros:false,plataformas:false,tripulacao:true,
     bases:false,clientes:false,rotas:false,codigosAtraso:true,listas:true,configuracoes:false,usuarios:false,seguranca:false
   };
 }
@@ -5792,7 +5792,7 @@ function effectivePermissionMapForFunction(funcao){
   if(profile){const out={};UI_PERMISSION_DEFS.forEach(([k])=>{const raw=profile[k];out[k]=raw===true||String(raw).toUpperCase()==='TRUE'||String(raw)==='1'||String(raw).toUpperCase()==='SIM'});return out}
   if(key==='ADMINISTRADOR'){const out={};UI_PERMISSION_DEFS.forEach(([k])=>out[k]=true);return out}
   if(key==='ABASTECEDOR'||key==='ABASTECIMENTO'){const out={};UI_PERMISSION_DEFS.forEach(([k])=>out[k]=false);out.abastecimento=true;return out}
-  if(key==='COORDENADOR'){const out={};UI_PERMISSION_DEFS.forEach(([k])=>out[k]=false);['painel','operacao','atendimento','historico','abastecimento','criarVoo','editarVoo','finalizarVoo','cancelarVoo','transferirVoo','adicionarTrecho','verAeronaves','relatorios','tripulacao','codigosAtraso','listas'].forEach(k=>out[k]=true);return out}
+  if(key==='COORDENADOR'){const out={};UI_PERMISSION_DEFS.forEach(([k])=>out[k]=false);['painel','operacao','atendimento','historico','abastecimento','criarVoo','editarVoo','finalizarVoo','cancelarVoo','transferirVoo','adicionarTrecho','verAeronaves','editarAeronaves','relatorios','tripulacao','codigosAtraso','listas'].forEach(k=>out[k]=true);return out}
   const out={};UI_PERMISSION_DEFS.forEach(([k])=>out[k]=false);return out;
 }
 function userPermissionSummary(r){const custom=parseUserPermissionsValue(r['Permissões']);if(!custom)return '<span class="status-pill">HERDA DO PERFIL</span>';const enabled=UI_PERMISSION_DEFS.filter(([k])=>custom[k]===true).length;return `<span class="status-pill" style="border-color:var(--orange);color:var(--orange)">PERSONALIZADO • ${enabled} permissões</span>`}
@@ -6443,24 +6443,22 @@ function getAircraftByTail(tail){
   const cache=(typeof AIRCRAFT_CACHE!=='undefined'&&AIRCRAFT_CACHE&&AIRCRAFT_CACHE.length)?AIRCRAFT_CACHE:[];
   return cache.find(a=>String(a.tail||'').trim().toUpperCase()===t)||null;
 }
-/* v206 — cálculo alinhado ao sistema oficial mostrado pelo usuário:
+/* v213 — cálculo alinhado ao sistema oficial mostrado pelo usuário:
    TOW = DOM + Combustível + Payload.
    Payload = passageiros + bagagem + carga.
-   A tripulação não é somada novamente ao TOW porque o DOM já representa a massa operacional usada pelo sistema oficial.
-   Para cadastros antigos sem DOM, Peso Carta C é usado como fallback.
+   DOM = Peso Carta C (cadastro da aeronave) + Peso da tripulação do voo.
+   Para cadastros antigos sem Peso Carta C, o campo DOM do cadastro é usado como fallback.
 */
-const OFFICIAL_DOM_KG={
-  // Referência informada pelo usuário a partir do sistema oficial da empresa.
-  'PS-LSC':4779
-};
-function aircraftDomKg(ac){
-  const tail=normalizeTail(ac&&ac.tail||'');
-  if(Object.prototype.hasOwnProperty.call(OFFICIAL_DOM_KG,tail)) return OFFICIAL_DOM_KG[tail];
+function aircraftCartaCKg(ac){
   const acUnit=weightUnitForAircraft(ac&&ac.tail,ac&&ac.model);
-  const domRaw=Number(ac&&ac.pesoDom||0)||Number(ac&&ac.pesoCartaC||0)||0;
+  const cartaCRaw=Number(ac&&ac.pesoCartaC||0)||Number(ac&&ac.pesoDom||0)||0;
   // PMD/BOW são cadastrados na unidade da própria aeronave (KG p/ AW-139, LB p/ S-92);
   // convertemos sempre para kg aqui para que todo o cálculo interno use uma única unidade.
-  return displayWeightToKg(domRaw,acUnit);
+  return displayWeightToKg(cartaCRaw,acUnit);
+}
+function aircraftDomKg(ac,crewKg){
+  // crewKg já deve vir em kg (peso da tripulação do voo, não convertido por unidade da aeronave).
+  return aircraftCartaCKg(ac)+(Number(crewKg)||0);
 }
 function aircraftPmdKg(ac){
   const acUnit=weightUnitForAircraft(ac&&ac.tail,ac&&ac.model);
@@ -6468,8 +6466,9 @@ function aircraftPmdKg(ac){
 }
 function computeFlightPesoStatus(f,ac){
   const pmd=aircraftPmdKg(ac);
-  const dom=aircraftDomKg(ac);
   const w=f&&f.pesos||{};
+  const crewKg=Number(w.tripulacao)||(crewWeight(f&&f.cp,'CP')+crewWeight(f&&f.fo,'FO')+crewWeight(f&&f.fa,'FA'));
+  const dom=aircraftDomKg(ac,crewKg);
   // Sempre recalcula o Payload a partir dos campos do voo.
   // Não usa totalCarga salvo, pois ele pode ser um valor antigo.
   const payload=(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0);
@@ -6495,19 +6494,20 @@ function updateAircraftCalc(cargaTotal,tripulacao,combustivelTotal){
   const activeModel=activeDetailsFlight?.model||modelOf(activeDetailsFlight?.reg||'');
   const unit=weightUnitForAircraft(activeDetailsFlight?.reg||'',activeModel);
   const pmd=aircraftPmdKg(ap);
-  const dom=aircraftDomKg(ap);
+  // cargaTotal/tripulacao/combustivelTotal chegam na unidade de exibição (o que o usuário digitou), então
+  // convertemos para kg antes de somar com Carta C/pmd, que já estão em kg.
+  const tripulacaoKg=displayWeightToKg(Number(tripulacao||0),unit);
+  const dom=aircraftDomKg(ap,tripulacaoKg);
   if(!ap||(!pmd&&!dom)){
     pillEl.innerHTML='';
     return;
   }
-  // Sistema oficial: TOW = DOM + combustível + payload. Tripulação não é adicionada novamente.
-  // cargaTotal/combustivelTotal chegam na unidade de exibição (o que o usuário digitou), então
-  // convertemos para kg antes de somar com dom/pmd, que já estão em kg.
+  // Sistema oficial: TOW = DOM + combustível + payload (DOM já inclui a tripulação).
   const payloadKg=displayWeightToKg(Number(cargaTotal||0),unit);
   const combustivelKg=displayWeightToKg(Number(combustivelTotal||0),unit);
   const tow=dom+payloadKg+combustivelKg;
   const excesso=tow-pmd;
-  const towInfo=`TOW ${formatWeightFromKg(tow,unit)} • PMD ${formatWeightFromKg(pmd,unit)} • DOM ${formatWeightFromKg(dom,unit)} • Payload ${formatWeightFromKg(payloadKg,unit)} • Fuel ${formatWeightFromKg(combustivelKg,unit)}`;
+  const towInfo=`TOW ${formatWeightFromKg(tow,unit)} • PMD ${formatWeightFromKg(pmd,unit)} • DOM ${formatWeightFromKg(dom,unit)} (Carta C ${formatWeightFromKg(aircraftCartaCKg(ap),unit)} + Tripulação ${formatWeightFromKg(tripulacaoKg,unit)}) • Payload ${formatWeightFromKg(payloadKg,unit)} • Fuel ${formatWeightFromKg(combustivelKg,unit)}`;
   if(pmd&&excesso>0){
     pillEl.innerHTML=`<span class="peso-pill peso-pill-danger" title="${towInfo}">⚠ EXCESSO ${formatWeightFromKg(excesso,unit)}</span>`;
   }else if(pmd){
@@ -6537,7 +6537,9 @@ function updateFlightWeightTotals(){
   // convertemos para kg antes de comparar com DOM/PMD, que já estão em kg.
   const totalCargaKg=displayWeightToKg(totalCarga,unit);
   const combustivelKg=displayWeightToKg(combustivelTotal,unit);
-  const dom=aircraftDomKg(PESO_LOG_AIRCRAFT);
+  const tripulacaoKg=displayWeightToKg(tripulacao,unit);
+  const cartaCKg=aircraftCartaCKg(PESO_LOG_AIRCRAFT);
+  const dom=cartaCKg+tripulacaoKg;
   const tow=dom+totalCargaKg+combustivelKg;
   const pmd=aircraftPmdKg(PESO_LOG_AIRCRAFT);
   const delta=pmd-tow;
@@ -6568,6 +6570,8 @@ function updateFlightWeightTotals(){
 
   // Mantém o detalhamento sincronizado com os campos atuais, inclusive se
   // o usuário já tiver aberto a seção de cálculo.
+  const detailCartaC=document.getElementById('pesoCalcCartaC');
+  const detailCrew=document.getElementById('pesoCalcCrew');
   const detailDom=document.getElementById('pesoCalcDom');
   const detailPmd=document.getElementById('pesoCalcPmd');
   const detailAvailable=document.getElementById('pesoCalcAvailable');
@@ -6575,6 +6579,8 @@ function updateFlightWeightTotals(){
   const detailPayload=document.getElementById('pesoCalcPayload');
   const detailTow=document.getElementById('pesoCalcTow');
   const detailMargin=document.getElementById('pesoCalcMargin');
+  if(detailCartaC)detailCartaC.textContent=formatWeightFromKg(cartaCKg,unit);
+  if(detailCrew)detailCrew.textContent=formatWeightFromKg(tripulacaoKg,unit);
   if(detailDom)detailDom.textContent=formatWeightFromKg(dom,unit);
   if(detailPmd)detailPmd.textContent=formatWeightFromKg(pmd,unit);
   if(detailAvailable)detailAvailable.textContent=formatWeightFromKg(Math.max(0,pmd-dom),unit);
@@ -6619,6 +6625,9 @@ function openFlightPesoLogRender(f){
   const unit=weightUnitForAircraft(f.reg,f.model||modelOf(f.reg));
   const unitLower=unit==='LB'?'lb':'kg';
   const displayValue=(kg)=>kg==null||kg===''?'':Math.round(kgToDisplayWeight(kg,unit));
+  const cartaCKgInit=aircraftCartaCKg(ap);
+  const tripulacaoKgInit=Number(w.tripulacao)||0;
+  const domKgInit=cartaCKgInit+tripulacaoKgInit;
   const log=(f.logVoo&&typeof f.logVoo==='object'&&!Array.isArray(f.logVoo))?f.logVoo:{};
   const ida=log.ida||{}; const volta=log.volta||{};
   const aircraftLimitsNote=ap&&(ap.pesoMaximo||ap.combustivelMaximo)
@@ -6648,20 +6657,21 @@ function openFlightPesoLogRender(f){
         <div class="weight-total-box weight-total-box-cargo"><span>Total de peso</span><b id="pesoTotalCarga">${formatWeight((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0),unit)}</b></div>
       </div>
     </div>
-    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary${(aircraftPmdKg(ap)&&((aircraftPmdKg(ap))-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)))<0)?' row-danger':(aircraftPmdKg(ap)?' row-ok':'')}" role="button" tabindex="0" aria-expanded="false" title="Clique para visualizar o cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>${((aircraftPmdKg(ap))-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)))<0?'Excesso sobre PMD':'Margem até PMD'}</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal" class="peso-tow-value">${formatWeightFromKg(Math.abs((aircraftPmdKg(ap))-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b><span id="pesoDecolagemStatus" class="peso-tow-status"></span><span class="peso-tow-arrow" aria-hidden="true"></span></span></div>
+    <div id="pesoDecolagemSummary" class="weight-grand-total weight-grand-total-thin weight-tow-summary${(aircraftPmdKg(ap)&&((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)))<0)?' row-danger':(aircraftPmdKg(ap)?' row-ok':'')}" role="button" tabindex="0" aria-expanded="false" title="Clique para visualizar o cálculo do peso de decolagem" onclick="togglePesoDecolagemDetails()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePesoDecolagemDetails();}"><span>${((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0)))<0?'Excesso sobre PMD':'Margem até PMD'}</span><span class="weight-grand-total-right"><b id="pesoDecolagemTotal" class="peso-tow-value">${formatWeightFromKg(Math.abs((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b><span id="pesoDecolagemStatus" class="peso-tow-status"></span><span class="peso-tow-arrow" aria-hidden="true"></span></span></div>
     <div id="pesoDecolagemDetails" class="peso-decolagem-details is-collapsed">
     ${aircraftLimitsNote}
     <div class="peso-calc-grid">
-      <div class="peso-calc-item"><span>DOM (peso vazio)</span><b id="pesoCalcDom">${formatWeightFromKg(aircraftDomKg(ap),unit)}</b></div>
+      <div class="peso-calc-item"><span>Carta C (peso vazio)</span><b id="pesoCalcCartaC">${formatWeightFromKg(cartaCKgInit,unit)}</b></div>
+      <div class="peso-calc-item"><span>Tripulação</span><b id="pesoCalcCrew">${formatWeightFromKg(tripulacaoKgInit,unit)}</b></div>
+      <div class="peso-calc-item total"><span>DOM (Carta C + Tripulação)</span><b id="pesoCalcDom">${formatWeightFromKg(domKgInit,unit)}</b></div>
       <div class="peso-calc-item"><span>PMD (peso máximo)</span><b id="pesoCalcPmd">${formatWeightFromKg(aircraftPmdKg(ap),unit)}</b></div>
-      <div class="peso-calc-item"><span>Carga disponível</span><b id="pesoCalcAvailable">${formatWeightFromKg(Math.max(0,(aircraftPmdKg(ap))-aircraftDomKg(ap)),unit)}</b></div>
+      <div class="peso-calc-item"><span>Carga disponível</span><b id="pesoCalcAvailable">${formatWeightFromKg(Math.max(0,(aircraftPmdKg(ap))-domKgInit),unit)}</b></div>
       <div class="peso-calc-item"><span>Combustível</span><b id="pesoCalcFuel">${formatWeightFromKg(Number(w.combustivelTotal)||0,unit)}</b></div>
       <div class="peso-calc-item"><span>Payload (PAX + bagagem + carga)</span><b id="pesoCalcPayload">${formatWeightFromKg((Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0),unit)}</b></div>
-      <div class="peso-calc-item total"><span>Peso de decolagem</span><b id="pesoCalcTow">${formatWeightFromKg(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0),unit)}</b></div>
-      <div class="peso-calc-item total"><span>Margem restante</span><b id="pesoCalcMargin" class="peso-margin-value">${formatWeightFromKg(Math.abs((aircraftPmdKg(ap))-(aircraftDomKg(ap)+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b></div>
+      <div class="peso-calc-item total"><span>Peso de decolagem</span><b id="pesoCalcTow">${formatWeightFromKg(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0),unit)}</b></div>
+      <div class="peso-calc-item total"><span>Margem restante</span><b id="pesoCalcMargin" class="peso-margin-value">${formatWeightFromKg(Math.abs((aircraftPmdKg(ap))-(domKgInit+(Number(w.passageiro)||0)+(Number(w.bagagem)||0)+(Number(w.carga)||0)+(Number(w.combustivelTotal)||0))),unit)}</b></div>
     </div>
-    <div class="weight-note"><small>Cálculo operacional: Peso de decolagem = DOM + Combustível + Payload.</small></div>
-    <div class="weight-note"><small>A tripulação não é somada novamente ao peso de decolagem, seguindo a lógica do sistema oficial.</small></div>
+    <div class="weight-note"><small>Cálculo operacional: DOM = Carta C + Tripulação. Peso de decolagem = DOM + Combustível + Payload.</small></div>
     </div>
     <div class="flight-log-panel">
       <div class="flight-log-section">
@@ -7021,9 +7031,10 @@ function showFlightDetails(f,page=1){
           <div class="row"><label>Peso de carga<div class="detail-value">${formatWeightFromKg(w.carga,unit)}</div></label><label>Total<div class="detail-value detail-total">${formatWeightFromKg(pesoTotalCarga,unit)}</div></label></div>
           <div class="row"><label>PAX IDA<div class="detail-value">${(ida.pax??log.paxEmbarcados??log.pax)===''||(ida.pax??log.paxEmbarcados??log.pax)==null?'—':esc(ida.pax??log.paxEmbarcados??log.pax)}</div></label><label>Capacidade<div class="detail-value">${aircraftParamsOf(f.reg)?.capacidadePassageiros?esc(String(aircraftParamsOf(f.reg).capacidadePassageiros)):'—'}</div></label></div>
           <div class="row"><label>Peso da tripulação<div class="detail-value">${formatWeightFromKg(w.tripulacao,unit)}</div></label><label>Combustível total<div class="detail-value">${formatWeightFromKg(w.combustivelTotal,unit)}</div></label></div>
-          <div class="row"><label>Payload<div class="detail-value detail-total">${formatWeightFromKg(pesoTotalCarga,unit)}</div></label><label>DOM<div class="detail-value">${formatWeightFromKg(aircraftDomKg(aircraftParamsOf(f.reg)),unit)}</div></label></div>
-          <div class="row"><label>Combustível<div class="detail-value">${formatWeightFromKg(w.combustivelTotal,unit)}</div></label><label>Peso de decolagem<div class="detail-value detail-total">${formatWeightFromKg(aircraftDomKg(aircraftParamsOf(f.reg))+pesoTotalCarga+(Number(w.combustivelTotal)||0),unit)}</div></label></div>
-          <div class="row"><label>PMD<div class="detail-value">${formatWeightFromKg(aircraftPmdKg(aircraftParamsOf(f.reg)),unit)}</div></label><label>Margem restante<div class="detail-value detail-total">${formatWeightFromKg(aircraftPmdKg(aircraftParamsOf(f.reg))-(aircraftDomKg(aircraftParamsOf(f.reg))+pesoTotalCarga+(Number(w.combustivelTotal)||0)),unit)}</div></label></div>
+          <div class="row"><label>Carta C (peso vazio)<div class="detail-value">${formatWeightFromKg(aircraftCartaCKg(aircraftParamsOf(f.reg)),unit)}</div></label><label>DOM (Carta C + Tripulação)<div class="detail-value">${formatWeightFromKg(aircraftDomKg(aircraftParamsOf(f.reg),Number(w.tripulacao)||0),unit)}</div></label></div>
+          <div class="row"><label>Payload<div class="detail-value detail-total">${formatWeightFromKg(pesoTotalCarga,unit)}</div></label><label>Combustível<div class="detail-value">${formatWeightFromKg(w.combustivelTotal,unit)}</div></label></div>
+          <div class="row"><label>Peso de decolagem<div class="detail-value detail-total">${formatWeightFromKg(aircraftDomKg(aircraftParamsOf(f.reg),Number(w.tripulacao)||0)+pesoTotalCarga+(Number(w.combustivelTotal)||0),unit)}</div></label><label>PMD<div class="detail-value">${formatWeightFromKg(aircraftPmdKg(aircraftParamsOf(f.reg)),unit)}</div></label></div>
+          <div class="row"><label>Margem restante<div class="detail-value detail-total">${formatWeightFromKg(aircraftPmdKg(aircraftParamsOf(f.reg))-(aircraftDomKg(aircraftParamsOf(f.reg),Number(w.tripulacao)||0)+pesoTotalCarga+(Number(w.combustivelTotal)||0)),unit)}</div></label></div>
         </div>
       </div>
       <div class="details-page ${detailsPage===3?'active':''}" data-page="3">
