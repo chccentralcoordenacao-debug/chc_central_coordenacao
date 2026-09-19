@@ -2814,14 +2814,14 @@ function punctualityVisual(f){
   if(previsto===null || realizado===null) return '';
   return realizado<=previsto ? '<div class="punctuality on-time">NO HORÁRIO</div>' : '<div class="punctuality late">ATRASADO</div>';
 }
-function isFlightLate(f){
+function isFlightLate(f,useLiveInput){
   if(!f)return false;
   const rawStatus=String(f.status||'').trim().toUpperCase();
   if(rawStatus==='ATRASADO')return true;
   const log=f.logVoo&&typeof f.logVoo==='object'?f.logVoo:{};
   const ida=log.ida||{};
   const horario=String(f.horario||'').trim();
-  const acionamento=String((document.getElementById('logIdaAcionamento')?.value)||ida.acionamento||'').trim();
+  const acionamento=String((useLiveInput&&document.getElementById('logIdaAcionamento')?.value)||ida.acionamento||'').trim();
   if(!horario || horario==='--:--' || !acionamento) return false;
   const toMinutes=t=>{ const m=String(t).match(/^(\d{1,2}):(\d{2})$/); return m?Number(m[1])*60+Number(m[2]):null; };
   const previsto=toMinutes(horario), realizado=toMinutes(acionamento);
@@ -2831,7 +2831,7 @@ function isFlightLate(f){
 function updateAtrasoOptionsVisibility(){
   const wrap=document.getElementById('atrasoOptionsWrap');
   if(!wrap)return;
-  wrap.classList.toggle('hidden', !isFlightLate(editingFlight));
+  wrap.classList.toggle('hidden', !isFlightLate(editingFlight,true));
 }
 function setStatsView(mode){
   const selected=mode==='compact'?'compact':'cards';
@@ -7008,7 +7008,7 @@ async function saveFlightPesoLog(){
     pesos.totalCarga=pesos.passageiro+pesos.bagagem+pesos.carga;
     pesos.totalVoo=pesos.totalCarga+pesos.tripulacao+pesos.combustivelTotal;
 
-    const late=isFlightLate(f);
+    const late=isFlightLate(f,true);
     const motivoSelecionado=late
       ?(document.getElementById('logMotivoAtraso')?.value||'')
       :String(f?.logVoo?.motivoAtraso||'');
