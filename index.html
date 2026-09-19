@@ -2796,7 +2796,7 @@ function statusVisual(status){
     'ACIONADO':'🚁 ACIONADO',
     'EM VOO':'🚁 EM VOO',
     'FINALIZANDO':'✅ FINALIZANDO',
-    'FINALIZADO':'✓ FINALIZADO',
+    'FINALIZADO':'✅ CONCLUÍDO',
     'TRANSFERIDO':'🟠 TRANSFERIDO',
     'CANCELADO':'🔴 CANCELADO'
   };
@@ -2860,7 +2860,7 @@ const FTABLE_STATUS_META={
   'ACIONADO':{color:'#f59e0b',label:'Acionado'},
   'EM VOO':{color:'#f59e0b',label:'Em voo'},
   'FINALIZANDO':{color:'#22c55e',label:'Finalizando'},
-  'FINALIZADO':{color:'#8a929a',label:'Finalizado'},
+  'FINALIZADO':{color:'#16a34a',label:'Concluído'},
   'TRANSFERIDO':{color:'var(--orange)',label:'Transferido'},
   'CANCELADO':{color:'#d92f39',label:'Cancelado'}
 };
@@ -3075,13 +3075,13 @@ function buildFlightRowHTML(f,view){
   const addLeg=`<button type="button" class="add-leg" onclick='editFlight(${fJson})'>+ perna</button>`;
   const deleteCell=`<div class="ftable-delete"><button type="button" class="delete-flight-btn" title="Excluir voo" onclick='deleteFlightRow(${fJson})'>🗑</button></div>`;
   const transferClass=jaTransfCancel?' flight-card--transferido':'';
-  const pesoStatus=computeFlightPesoStatus(f,getAircraftByTail(f.reg));
-  const pesoPillRow=pesoStatus.state!=='nodata'?`<div class="ftable-peso-row">${pesoStatusPillHTML(pesoStatus)}</div>`:'';
+  // A pill de peso (dentro do peso/excesso) fica só no modal de Peso e Log do voo;
+  // na lista de voos em operação mostramos apenas o status operacional.
   return `<div class="ftable-row status-${String(status||'').toLowerCase().replace(/\s+/g,'-')} ${punctClass?'punct-'+punctClass:''}${transferClass}">    <div class="ftable-voo"><span class="flight-date-line">${esc(formatFlightDate(f))}</span>${esc(f.flightNo||'—')}</div>
     <div class="ftable-prefix"><span class="prefix-pill">${esc(f.reg||'—')}${prefixEdit}</span><small>${esc(f.cliente&&f.cliente!=='—'?f.cliente:'—')}</small></div>
     <div class="ftable-horario">${esc(f.horario&&f.horario!=='--:--'?f.horario:'--:--')}${punctTag}</div>
     <div class="ftable-trajeto"><div class="trajeto-chips">${trajetoHTML}${addLeg}</div><div class="crew-sub">CP: <b>${esc(f.cp||'—')}</b>&nbsp;&nbsp;FO: <b>${esc(f.fo||'—')}</b>&nbsp;&nbsp;FA: <b>${esc(f.fa||'—')}</b></div></div>
-    <div class="ftable-status"><button type="button" class="status-pill-btn" onclick='showFlightDetails(${fJson})'><span class="fdot" style="background:${meta.color}"></span>${esc(meta.label)}<span class="chev">⌄</span></button>${pesoPillRow}${quickActions}</div>
+    <div class="ftable-status"><button type="button" class="status-pill-btn" onclick='showFlightDetails(${fJson})'><span class="fdot" style="background:${meta.color}"></span>${esc(meta.label)}<span class="chev">⌄</span></button>${quickActions}</div>
     <div class="ftable-observations-stack">${retornoObservationHTML(f)}${delayObservationHTML(f)}</div>
     ${deleteCell}
   </div>`;
