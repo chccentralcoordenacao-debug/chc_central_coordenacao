@@ -6146,7 +6146,7 @@ async function renderAtendimento(){
       const pesoPill=pesoStatusPillHTML(pesoStatus);
       const fJson=JSON.stringify(f).replace(/'/g,'&#39;');
       return `<div class="atendimento-row ${statusClass}${delayLine?' has-delay':''}" role="button" tabindex="0" onclick='showFlightDetails(${fJson})' onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-        <div class="atendimento-date"><span>${esc(formatFlightDate(f))}</span><small class="atendimento-voo-no">Voo ${esc(f.flightNo||'—')}</small>${statusBadge}</div>
+        <div class="atendimento-date"><span>Voo ${esc(f.flightNo||'—')}</span><small class="atendimento-voo-no">${esc(formatFlightDate(f))}</small>${statusBadge}</div>
         <div class="atendimento-prefix"><b>${esc(tail||'—')}</b><small>${esc(f.cliente||'')}</small></div>
         <div class="atendimento-time">${esc(f.horario||'—')}</div>
         <div class="atendimento-route"><div>${route}</div><div class="atendimento-crew">${crew}</div></div>
@@ -7127,11 +7127,11 @@ function showFlightDetails(f,page=1){
       <div class="details-page ${detailsPage===1?'active':''}" data-page="1">
         <div class="details-page-title">1/3 · INFORMAÇÕES DO VOO</div>
         <div class="weight-section">
-          <div class="row"><label>Base<div class="detail-value">${esc(f.base||session.base||'—')}</div></label><label>Aeronave<div class="detail-value">${esc(f.reg||'—')}</div></label></div>
-          <div class="row"><label>Modelo<div class="detail-value">${esc(f.model||'—')}</div></label><label>Nº do voo<div class="detail-value">${esc(f.flightNo||'—')}</div></label></div>
+          <div class="row"><label>Base<div class="detail-value">${esc(f.base||session.base||'—')}</div></label><label>Aeronave<div class="detail-value detail-total">${esc(f.reg||'—')}</div></label></div>
+          <div class="row"><label>Modelo<div class="detail-value">${esc(f.model||'—')}</div></label><label>Nº do voo<div class="detail-value detail-total">${esc(f.flightNo||'—')}</div></label></div>
           <div class="row"><label>Horário do voo<div class="detail-value">${esc(f.horario||'--:--')}</div></label><label>Status<div class="detail-value">${esc(deriveFlightStatus(f)||'—')}</div></label></div>
-          <div class="row"><label>CP (Comandante)<div class="detail-value">${esc(f.cp||'—')}</div></label><label>FO (Copiloto)<div class="detail-value">${esc(f.fo||'—')}</div></label></div>
-          <div class="row"><label>FA<div class="detail-value">${esc(f.fa||'—')}</div></label><label>Cliente<div class="detail-value">${esc(f.cliente||'—')}</div></label></div>
+          <div class="row"><label>CP (Comandante)<div class="detail-value detail-total">${esc(f.cp||'—')}</div></label><label>FO (Copiloto)<div class="detail-value detail-total">${esc(f.fo||'—')}</div></label></div>
+          <div class="row"><label>FA<div class="detail-value detail-total">${esc(f.fa||'—')}</div></label><label>Cliente<div class="detail-value detail-total">${esc(f.cliente||'—')}</div></label></div>
           <label>Rota<div class="detail-value">${esc(f.destino||'—')}</div></label>
           <label>Unidade<div class="detail-value">${esc(f.unidade||'—')}</div></label>
           <label>Observações<div class="detail-value">${esc(f.observacoes||'—')}</div></label>
@@ -7144,10 +7144,9 @@ function showFlightDetails(f,page=1){
         <div class="weight-section">
           <div class="row"><label>Peso de passageiro<div class="detail-value">${formatWeightFromKg(w.passageiro,unit)}</div></label><label>Peso de bagagem<div class="detail-value">${formatWeightFromKg(w.bagagem,unit)}</div></label></div>
           <div class="row"><label>Peso de carga<div class="detail-value">${formatWeightFromKg(w.carga,unit)}</div></label><label>Total<div class="detail-value detail-total">${formatWeightFromKg(pesoTotalCarga,unit)}</div></label></div>
-          <div class="row"><label>PAX IDA<div class="detail-value">${(ida.pax??log.paxEmbarcados??log.pax)===''||(ida.pax??log.paxEmbarcados??log.pax)==null?'—':esc(ida.pax??log.paxEmbarcados??log.pax)}</div></label><label>Capacidade<div class="detail-value">${aircraftParamsOf(f.reg)?.capacidadePassageiros?esc(String(aircraftParamsOf(f.reg).capacidadePassageiros)):'—'}</div></label></div>
-          <div class="row"><label>Peso da tripulação<div class="detail-value">${formatWeightFromKg(w.tripulacao,unit)}</div></label><label>Combustível total<div class="detail-value">${formatWeightFromKg(w.combustivelTotal,unit)}</div></label></div>
-          <div class="row"><label>Carta C (peso vazio)<div class="detail-value">${formatWeightFromKg(aircraftCartaCKg(aircraftParamsOf(f.reg)),unit)}</div></label><label>DOM (Carta C + Tripulação)<div class="detail-value">${formatWeightFromKg(aircraftDomKg(aircraftParamsOf(f.reg),Number(w.tripulacao)||0),unit)}</div></label></div>
-          <div class="row"><label>Payload<div class="detail-value detail-total">${formatWeightFromKg(pesoTotalCarga,unit)}</div></label><label>Combustível<div class="detail-value">${formatWeightFromKg(w.combustivelTotal,unit)}</div></label></div>
+          <label>PAX IDA<div class="detail-value">${(ida.pax??log.paxEmbarcados??log.pax)===''||(ida.pax??log.paxEmbarcados??log.pax)==null?'—':esc(ida.pax??log.paxEmbarcados??log.pax)}</div></label>
+          <div class="row"><label>Peso da tripulação<div class="detail-value detail-total">${formatWeightFromKg(w.tripulacao,unit)}</div></label><label>Combustível total<div class="detail-value detail-total">${formatWeightFromKg(w.combustivelTotal,unit)}</div></label></div>
+          <div class="row"><label>Payload<div class="detail-value detail-total">${formatWeightFromKg(pesoTotalCarga,unit)}</div></label><label>Combustível<div class="detail-value detail-total">${formatWeightFromKg(w.combustivelTotal,unit)}</div></label></div>
           <div class="row"><label>Peso de decolagem<div class="detail-value detail-total">${formatWeightFromKg(aircraftDomKg(aircraftParamsOf(f.reg),Number(w.tripulacao)||0)+pesoTotalCarga+(Number(w.combustivelTotal)||0),unit)}</div></label><label>PMD<div class="detail-value">${formatWeightFromKg(aircraftPmdKg(aircraftParamsOf(f.reg)),unit)}</div></label></div>
           <div class="row"><label>Margem restante<div class="detail-value detail-total">${formatWeightFromKg(aircraftPmdKg(aircraftParamsOf(f.reg))-(aircraftDomKg(aircraftParamsOf(f.reg),Number(w.tripulacao)||0)+pesoTotalCarga+(Number(w.combustivelTotal)||0)),unit)}</div></label></div>
         </div>
